@@ -12,10 +12,10 @@
 **  2016/08/30 16:12:44 version 1.0
 **  
 **	version 1.0 	init. slide window do not suit for HDR interpolation.
-**   
-**
-**	
-**
+**   	------------
+**		--	G R
+**			B G ---
+**		------------
 ** Copyright 2016, rockchip.
 **
 ***************************************************************************/
@@ -45,8 +45,10 @@ void writeFile(RK_U16 *data, int Num, char* FileName)
 
 // 4x32 block process
 void zigzagDebayer(	RK_U16 *p_u16Src, 
+						RK_U16 *p_u16Tab, 
 						RK_U16 width,
 						RK_U16 stride,
+						RK_U16 normValue,
 						RK_U16 *p_u16Dst	//<<! [out]
 						) 
 {
@@ -67,8 +69,40 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	ushort16 vRL0best,vBL0best,vG0L0best,vG1L0best;
 	ushort16 vRL1best,vBL1best,vG0L1best,vG1L1best;
 	
+	ushort16 vG2packed,vR2packed,vB3packed,vG3packed;
+	ushort16 vG4packed,vR4packed,vB5packed,vG5packed;
 
+	ushort16 vRL0Long,vRL0Short,vBL0Long,vBL0Short;
+	ushort16 vG0L0Long,vG0L0Short,vG1L0Long,vG1L0Short;
 
+	ushort16 vRL1Long,vRL1Short,vBL1Long,vBL1Short;
+	ushort16 vG0L1Long,vG0L1Short,vG1L1Long,vG1L1Short;
+
+	ushort16 vRL0diff,vBL0diff,vG0L0diff,vG1L0diff;
+	ushort16 vRL1diff,vBL1diff,vG0L1diff,vG1L1diff;	
+	static unsigned short buff[2*4*32];
+	unsigned short* pL0G0	 = buff;
+	unsigned short* pL0Red	 = buff+1;
+	unsigned short* pL0Blu	 = buff+32;
+	unsigned short* pL0G1	 = buff+33;
+	unsigned short* pL1G0	 = buff+64;
+	unsigned short* pL1Red	 = buff+1+64;
+	unsigned short* pL1Blu	 = buff+32+64;
+	unsigned short* pL1G1	 = buff+33+64;
+
+	unsigned short* pL0G0_s	 = buff 		+ 4*32;
+	unsigned short* pL0Red_s = buff+1		+ 4*32;
+	unsigned short* pL0Blu_s = buff+32		+ 4*32;
+	unsigned short* pL0G1_s	 = buff+33		+ 4*32;
+	unsigned short* pL1G0_s	 = buff+64		+ 4*32;
+	unsigned short* pL1Red_s = buff+1+64	+ 4*32;	
+	unsigned short* pL1Blu_s = buff+32+64 	+ 4*32;
+	unsigned short* pL1G1_s	 = buff+33+64 	+ 4*32;
+
+	unsigned short  OffsetGap2[16] 		= {	0,	2, 4, 6, 8,10,12,14,
+											16,18,20,22,24,26,28,30};
+	short16 vOffsetGap2		 = *(short16*)(&OffsetGap2);	
+	
 	unsigned short* pInLine0 = p_u16Src ;				// + 3,Load R 
 	unsigned short* pInLine1 = p_u16Src + stride 	;	// + 1 load G & B
 	unsigned short* pInLine2 = p_u16Src + 2*stride 	;	// + 1 LOAD R & G
@@ -82,21 +116,30 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	unsigned char cfg_adj_red2[32] 		= {2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,16+3,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	unsigned char cfg_adj_red3[32] 		= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,
+											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
 	uchar32 vcfgAdjRed1= *(uchar32*)(&cfg_adj_red1);
 	uchar32 vcfgAdjRed2= *(uchar32*)(&cfg_adj_red2);
+	uchar32 vcfgAdjRedPack= *(uchar32*)(&cfg_adj_red3);
+
+	
 	unsigned char cfg_adj_blu1[32] 		= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	unsigned char cfg_adj_blu2[32] 		= {2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,16+2,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	uchar32 vcfgAdjBlu1= *(uchar32*)(&cfg_adj_blu1);
 	uchar32 vcfgAdjBlu2= *(uchar32*)(&cfg_adj_blu2);
-
+	uchar32	vcfgAdjBluePack= *(uchar32*)(&cfg_adj_blu1);
+		
 	unsigned char cfg_adj_gre1[32] 		= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	unsigned char cfg_adj_gre2[32]  	= {2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,16+2,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	uchar32 vcfgAdjGre1= *(uchar32*)(&cfg_adj_gre1);
 	uchar32 vcfgAdjGre2= *(uchar32*)(&cfg_adj_gre2);
+
+	
 
 //#define G_RB_ARRANGE 0x55555555
 //#define RB_G_ARRANGE 0xaaaaaaaa
@@ -129,7 +172,7 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	vldchk(pInLine7, vB7, vG7);   vBG7 = *(ushort16*)(pInLine7+32);   pInLine7 += 8*stride;
 	
 	{
-		// ========= line 0 ==============
+		// ========= line 0 GRBG ==============
 		// -------------r-----------------
 		// abs(R0-R4),abs(R2 - R2+4)
 		// ----
@@ -204,7 +247,7 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 		vG1L0best 	= vselect( (ushort16)vadd(vG2offset, vG4offset_), (ushort16)vadd(vG4offset, vG2offset_), SecMask); 
 	#endif
 		PRINT_CEVA_VRF("vG1L0best", vG1L0best, stderr);
-		// ========= line 1 ==============
+		// ========= line 1 GRBG ==============
 		// -------------r-----------------
 		// abs(R2-R6),abs(R4 - R4+4)
 		// ----
@@ -280,7 +323,157 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	#endif
 		PRINT_CEVA_VRF("vG1L1best", vG1L1best, stderr);
 
+#define R_B_LONG_PATTERN	0XAAAA
+#define R_B_SHORT_PATTERN	0X5555 
+#define G_LONG_PATTERN		0XFFFF
+#define G_SHORT_PATTERN		0X0
 
+		// ------------------------------------------
+		// overlap the long time and short time image
+		// 4 Line x 32 for long and short.
+		// ------------------------------------------
+		// line 0 GRBG
+		vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
+		vRL0best	= (ushort16)vshiftr(vRL0best, (uchar)1);// times// interpoaltion		
+		vRL0Long		= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
+		PRINT_CEVA_VRF("vRL0Long", vRL0Long, stderr);
+		vRL0Short		= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
+		vRL0Short		= (ushort16)vshiftl(vRL0Short, 3);// times
+		PRINT_CEVA_VRF("vRL0Short", vRL0Short, stderr);
+
+
+		vB3packed	= vB3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+		vBL0best	= (ushort16)vshiftr(vBL0best, (uchar)1);// times// interpoaltion		
+		vBL0Long		= vselect(vB3packed, vBL0best, R_B_LONG_PATTERN);
+		PRINT_CEVA_VRF("vBL0Long", vBL0Long, stderr);
+		vBL0Short		= vselect(vB3packed, vBL0best, R_B_SHORT_PATTERN);
+		vBL0Short		= (ushort16)vshiftl(vBL0Short, 3);// times
+		PRINT_CEVA_VRF("vBL0Short", vBL0Short, stderr);
+
+
+		vG2packed	= vG2offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+		vG0L0best	= (ushort16)vshiftr(vG0L0best, (uchar)1);// times// interpoaltion		
+		vG0L0Long		= vselect(vG2packed, vG0L0best, G_LONG_PATTERN);
+		PRINT_CEVA_VRF("vG0L0Long", vG0L0Long, stderr);
+		vG0L0Short	= vselect(vG2packed, vG0L0best, G_SHORT_PATTERN);
+		vG0L0Short	= (ushort16)vshiftl(vG0L0Short, 3);// times
+		PRINT_CEVA_VRF("vG0L0Short", vG0L0Short, stderr);
+
+		vG3packed	= vG3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+		vG1L0best	= (ushort16)vshiftr(vG1L0best, (uchar)1);// times// interpoaltion		
+		vG1L0Long		= vselect(vG3packed, vG1L0best, G_SHORT_PATTERN);
+		PRINT_CEVA_VRF("vG1L0Long", vG1L0Long, stderr);
+		vG1L0Short	= vselect(vG3packed, vG1L0best, G_LONG_PATTERN);
+		vG1L0Short	= (ushort16)vshiftl(vG1L0Short, 3);// times
+		PRINT_CEVA_VRF("vG1L0Short", vG1L0Short, stderr);
+
+		// line 1 GRBG
+		vR4packed	= (ushort16)vperm(vR4,vGR4,vcfgAdjRedPack); // orignal
+		vRL1best	= (ushort16)vshiftr(vRL1best, (uchar)1);// times// interpoaltion		
+		vRL1Long		= vselect(vR4packed, vRL1best, R_B_SHORT_PATTERN);
+		PRINT_CEVA_VRF("vRL1Long", vRL1Long, stderr);
+		vRL1Short		= vselect(vR4packed, vRL1best, R_B_LONG_PATTERN);
+		vRL1Short		= (ushort16)vshiftl(vRL1Short, 3);// times
+		PRINT_CEVA_VRF("vRL1Short", vRL1Short, stderr);
+
+
+		vB5packed	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
+		vBL1best	= (ushort16)vshiftr(vBL1best, (uchar)1);// times// interpoaltion		
+		vBL1Long		= vselect(vB5packed, vBL1best, R_B_SHORT_PATTERN );
+		PRINT_CEVA_VRF("vBL1Long", vBL1Long, stderr);
+		vBL1Short		= vselect(vB5packed, vBL1best, R_B_LONG_PATTERN);
+		vBL1Short		= (ushort16)vshiftl(vBL1Short, 3);// times
+		PRINT_CEVA_VRF("vBL1Short", vBL1Short, stderr);
+
+
+		vG4packed	= vG4offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+		vG0L1best	= (ushort16)vshiftr(vG0L1best, (uchar)1);// times// interpoaltion		
+		vG0L1Long		= vselect(vG4packed, vG0L1best, G_LONG_PATTERN);
+		PRINT_CEVA_VRF("vG0L1Long", vG0L1Long, stderr);
+		vG0L1Short	= vselect(vG4packed, vG0L1best, G_SHORT_PATTERN);
+		vG0L1Short	= (ushort16)vshiftl(vG0L1Short, 3);// times
+		PRINT_CEVA_VRF("vG0L1Short", vG0L1Short, stderr);
+
+		vG5packed	= vG5offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+		vG1L1best	= (ushort16)vshiftr(vG1L1best, (uchar)1);// times// interpoaltion		
+		vG1L1Long		= vselect(vG5packed, vG1L1best, G_SHORT_PATTERN);
+		PRINT_CEVA_VRF("vG1L1Long", vG1L1Long, stderr);
+		vG1L1Short	= vselect(vG5packed, vG1L0best, G_LONG_PATTERN);
+		vG1L1Short	= (ushort16)vshiftl(vG1L1Short, 3);// times
+		PRINT_CEVA_VRF("vG1L1Short", vG1L1Short, stderr);
+
+		// data arrange as scatter, store out to packed bayer.
+		vpst(vRL0Long, 	pL0Red, vOffsetGap2);
+		vpst(vBL0Long,  pL0Blu, vOffsetGap2);
+		vpst(vG0L0Long, pL0G0,  vOffsetGap2);
+		vpst(vG1L0Long, pL0G1,  vOffsetGap2);
+
+		vpst(vRL0Short,	 pL0Red_s, vOffsetGap2);
+		vpst(vBL0Short,  pL0Blu_s, vOffsetGap2);
+		vpst(vG0L0Short, pL0G0_s,  vOffsetGap2);
+		vpst(vG1L0Short, pL0G1_s,  vOffsetGap2);
+
+		vpst(vRL1Long, 	pL1Red, vOffsetGap2);
+		vpst(vBL1Long,  pL1Blu, vOffsetGap2);
+		vpst(vG0L1Long, pL1G0,  vOffsetGap2);
+		vpst(vG1L1Long, pL1G1,  vOffsetGap2);
+
+		vpst(vRL1Short,	 pL1Red_s, vOffsetGap2);
+		vpst(vBL1Short,  pL1Blu_s, vOffsetGap2);
+		vpst(vG0L1Short, pL1G0_s,  vOffsetGap2);
+		vpst(vG1L1Short, pL1G1_s,  vOffsetGap2);
+
+/*
+		// ------------------------------------------
+		// use difference to LUT
+		// ------------------------------------------
+		vRL0diff	= vabssub(vRL0Short, vRL0Long);
+		vBL0diff	= vabssub(vBL0Short, vBL0Long);
+		vG0L0diff	= vabssub(vG0L0Short, vG0L0Long);
+		vG1L0diff	= vabssub(vG1L0Short, vG1L0Long);
+
+		vRL1diff	= vabssub(vRL1Short, vRL1Long);
+		vBL1diff	= vabssub(vBL1Short, vBL1Long);
+		vG0L1diff	= vabssub(vG0L1Short, vG0L1Long);
+		vG1L1diff	= vabssub(vG1L1Short, vG1L1Long);
+
+		// scale the diff by [2^param.bits/(param.noise*param.exptimes)]
+		vRL0diff 	= vshiftl(vRL0diff , 1); 
+		vBL0diff 	= vshiftl(vBL0diff , 1); 
+		vG0L0diff	= vshiftl(vG0L0diff, 1); 
+		vG1L0diff	= vshiftl(vG1L0diff, 1); 
+		vRL1diff 	= vshiftl(vRL1diff , 1); 
+		vBL1diff 	= vshiftl(vBL1diff , 1); 
+		vG0L1diff	= vshiftl(vG0L1diff, 1); 
+		vG1L1diff	= vshiftl(vG1L1diff, 1); 
+
+		// and min(x,ref)
+		vRL0diff 	= vmin(vRL0diff , (ushort16) normValue);         
+		vBL0diff 	= vmin(vBL0diff , (ushort16) normValue);         
+		vG0L0diff	= vmin(vG0L0diff, (ushort16) normValue);         
+		vG1L0diff	= vmin(vG1L0diff, (ushort16) normValue);         
+		vRL1diff 	= vmin(vRL1diff , (ushort16) normValue);         
+		vBL1diff 	= vmin(vBL1diff , (ushort16) normValue);         
+		vG0L1diff	= vmin(vG0L1diff, (ushort16) normValue);         
+		vG1L1diff	= vmin(vG1L1diff, (ushort16) normValue);         
+
+		// LUT
+		
+		v0 = vpld(p_u16Tab, vRL0diff);
+		v1 = vpld(p_u16Tab, vBL0diff);
+		v2 = vpld(p_u16Tab, vG0L0diff);
+		v3 = vpld(p_u16Tab, vG1L0diff);
+
+		v4 = vpld(p_u16Tab, vRL1diff);
+		v5 = vpld(p_u16Tab, vBL1diff);
+		v6 = vpld(p_u16Tab, vG0L1diff);
+		v7 = vpld(p_u16Tab, vG1L1diff);		
+*/
+		// max3x3 filter
+
+
+		// bilinear
+		
 	}//n	
 	//PROFILER_END();
 }
