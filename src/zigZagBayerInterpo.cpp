@@ -41,7 +41,215 @@ void writeFile(RK_U16 *data, int Num, char* FileName)
 }
 #endif
 
-#define CODE_SCATTER 1
+#define CODE_SCATTER 		1
+
+#define R_B_LONG_PATTERN	0XAAAA
+#define R_B_SHORT_PATTERN	0X5555 
+#define G_LONG_PATTERN		0XFFFF
+#define G_SHORT_PATTERN		0X0
+
+/**
+ * 
+ * \name residualLUT,read long and short image to get residual do LUT store out.
+ * \param[in] p_u16Long 	 Pointer to the long source 
+ * \param[in] p_u16Short	 Pointer to the short source 	
+ * \param[out]p_u16Weight 	 Pointer to the destination
+ * \param[in] s32Step 	 input stride (distance in pixel units between vertically adjacent pixels)
+ * \param[in] u32Rows 	 Number of rows
+ * \param[in] u32Cols 	 Number of columns
+ *
+ *
+ *  \b Return \b value \n
+ *  None
+ *
+ *	\b Restrictions \n
+ *  1. p_u16Src must be padded by one pixel on each side \ref padding "- padding".
+ *  2. Source buffer size must be s32SrcStep*(u32Rows+2), and s32SrcStep should be bigger than (u32Cols+2).
+ *
+ *
+ *
+ *
+ */
+
+
+// 0.23 cycle/pixel
+
+void residualLUT(RK_U16 *p_u16Long, 	//<<! [in] long time image.
+					RK_U16 *p_u16Short, //<<! [in] short time image.
+					RK_U16 *p_u16Tab, 	//<<! [in] table
+					RK_U16 *p_u16Weight,//<<! [out] bilinear weight
+					int stride, 		//<<! [in] residual scale factor
+					RK_U16  normValue, 	//<<! [in] refValue
+					uint u32Cols)
+{
+	ushort16 v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13,v14,v15;
+	RK_U16* pLong 	= p_u16Long;
+	RK_U16* pShort 	= p_u16Short;	
+	
+	v0 = *(ushort16*)(pLong); 	
+	v1 = *(ushort16*)(pLong+16); 	
+	v2 = *(ushort16*)(pLong+1*stride); 	
+	v3 = *(ushort16*)(pLong+1*stride+16); 	
+	v4 = *(ushort16*)(pLong+2*stride); 	
+	v5 = *(ushort16*)(pLong+2*stride+16);
+	v6 = *(ushort16*)(pLong+3*stride); 	
+	v7 = *(ushort16*)(pLong+3*stride+16);
+
+	v8  = *(ushort16*)(pShort); 	
+	v9  = *(ushort16*)(pShort+16); 	
+	v10 = *(ushort16*)(pShort+1*stride); 	
+	v11 = *(ushort16*)(pShort+1*stride+16); 	
+	v12 = *(ushort16*)(pShort+2*stride); 	
+	v13 = *(ushort16*)(pShort+2*stride+16);
+	v14 = *(ushort16*)(pShort+3*stride); 	
+	v15 = *(ushort16*)(pShort+3*stride+16);
+	
+	// ------------------------------------------
+	// use difference to LUT
+	// ------------------------------------------
+	v0	= vabssub(v0, v8);
+	v1	= vabssub(v1, v9);
+	v2	= vabssub(v2, v10);
+	v3	= vabssub(v3, v11);
+
+	v4	= vabssub(v4, v12);
+	v5	= vabssub(v5, v13);
+	v6	= vabssub(v6, v14);
+	v7	= vabssub(v7, v15);
+
+	// scale the diff by [2^param.bits/(param.noise*param.exptimes)] = 1024/(64*8)
+	v0 	= (ushort16)vshiftl(v0 , 1); 
+	v1 	= (ushort16)vshiftl(v1 , 1); 
+	v2	= (ushort16)vshiftl(v2 , 1); 
+	v3	= (ushort16)vshiftl(v3 , 1); 
+	v4 	= (ushort16)vshiftl(v4 , 1); 
+	v5 	= (ushort16)vshiftl(v5 , 1); 
+	v6	= (ushort16)vshiftl(v6 , 1); 
+	v7	= (ushort16)vshiftl(v7 , 1); 
+
+	// and min(x,ref)
+	v0 	= vmin(v0 , (ushort16) normValue);         
+	v1 	= vmin(v1 , (ushort16) normValue);         
+	v2	= vmin(v2 , (ushort16) normValue);         
+	v3	= vmin(v3 , (ushort16) normValue);         
+	v4 	= vmin(v4 , (ushort16) normValue);         
+	v5 	= vmin(v5 , (ushort16) normValue);         
+	v6	= vmin(v6 , (ushort16) normValue);         
+	v7	= vmin(v7 , (ushort16) normValue);         
+
+	// LUT
+	
+	v0 = vpld(p_u16Tab, (short16)v0);
+	v1 = vpld(p_u16Tab, (short16)v1);
+	v2 = vpld(p_u16Tab, (short16)v2);
+	v3 = vpld(p_u16Tab, (short16)v3);
+
+	v4 = vpld(p_u16Tab, (short16)v4);
+	v5 = vpld(p_u16Tab, (short16)v5);
+	v6 = vpld(p_u16Tab, (short16)v6);
+	v7 = vpld(p_u16Tab, (short16)v7);		
+
+#if 1
+	// store the weight for 3x3 max filter
+	vst(v0, p_u16Weight, 				0xffff);
+	vst(v1, p_u16Weight+16,				0xffff);
+	vst(v2, p_u16Weight+1*stride, 		0xffff);
+	vst(v3, p_u16Weight+1*stride+16, 	0xffff);
+
+	vst(v4, p_u16Weight+2*stride, 		0xffff);
+	vst(v5, p_u16Weight+2*stride+16, 	0xffff);
+	vst(v6, p_u16Weight+3*stride, 		0xffff);
+	vst(v7, p_u16Weight+3*stride+16,	0xffff);
+#endif
+
+}
+	
+/**
+ * 
+ * \name  do max3x3 filter for the table value.
+ * \param[in] p_u16Src 	 Pointer to the first source 
+ * \param[out] p_u16Dst	 Pointer to the destination
+ * \param[in] s32SrcStep 	 First input stride (distance in pixel units between vertically adjacent pixels)
+ * \param[in] s32DstStep 	 Output stride (distance in pixel units between vertically adjacent pixels)
+ * \param[in] u32Rows 	 Number of rows
+ * \param[in] u32Cols 	 Number of columns
+ *
+ *
+ *  \b Return \b value \n
+ *  None
+ *
+ *	\b Restrictions \n
+ *  1. p_u16Src must be padded by one pixel on each side \ref padding "- padding".
+ *  2. Source buffer size must be s32SrcStep*(u32Rows+2), and s32SrcStep should be bigger than (u32Cols+2).
+ *
+ *
+ *
+ *
+ */
+
+
+// 0.23 cycle/pixel
+
+void Max3x3(	ushort *p_u16Src, 
+				ushort *p_u16Dst, 
+				int s32SrcStep, 
+				int s32DstStep, 
+				uint u32Rows, 
+				uint u32Cols)
+{
+	uint row, col;
+	ushort* p_src = p_u16Src;
+	ushort* p_dst = p_u16Dst;
+	ushort16 v0a, v0b, v0c, vdummy;
+	ushort16 v1a, v1b, v1c;
+	ushort16 v2a, v2b, v2c;
+	ushort16 u1;
+	uint vprMask;
+	uint vprRightMask;
+
+	vprMask = 0xFFFFFFFF;
+	vprRightMask = 0xFFFFFFFF;
+	if ((u32Cols & 15) != 0)
+		vprRightMask = ((1 << (u32Cols & 15)) - 1);
+
+	for (col = 0; col < u32Cols; col += 16)
+	{
+		if (u32Cols - col < 16)
+			vprMask = vprRightMask;
+
+		p_src = p_u16Src - s32SrcStep + col - 1;
+		p_dst = p_u16Dst + col;
+
+		vldov((ushort16*)(p_src), v0a, v0b, v0c, vdummy);
+		p_src += s32SrcStep;
+		v0a = vmax(v0a, v0b, v0c);
+		vldov((ushort16*)(p_src), v1a, v1b, v1c, vdummy);
+		p_src += s32SrcStep;
+		v1a = vmax(v1a, v1b, v1c);
+		vldov((ushort16*)(p_src), v2a, v2b, v2c, vdummy);
+		p_src += s32SrcStep;
+
+		for (row = 0; row < u32Rows; row++)
+		{
+			v2a = vmax(v2a, v2b, v2c);
+			u1 = vmax(v0a, v1a, v2a);
+
+			v0a = v1a;
+			v0b = v1b;
+			v0c = v1c;
+			v1a = v2a;
+			v1a = v2a;
+			v1a = v2a;
+			vldov((ushort16*)(p_src), v2a, v2b, v2c, vdummy);
+			p_src += s32SrcStep;
+
+			// store 32 result pixels
+			vst(u1, (ushort16*)p_dst, vprMask);
+			p_dst += s32DstStep;
+		}
+	}
+	//GET_FUNCTION_NAME(ceva::g_p_function_name);
+}
 
 // 4x32 block process
 void zigzagDebayer(	RK_U16 *p_u16Src, 
@@ -49,7 +257,7 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 						RK_U16 width,
 						RK_U16 stride,
 						RK_U16 normValue,
-						RK_U16 *p_u16Dst	//<<! [out]
+						RK_U16 *buff	//<<! [out] 4x32 short16 for 4x32 block 
 						) 
 {
 #ifdef __XM4__
@@ -59,6 +267,8 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	ushort16 vG0,vR0,vB1,vG1,vG2,vR2,vB3,vG3,vG4,vR4,vB5,vG5,vG6,vR6,vB7,vG7;
 	ushort16 vGR0,vBG1,vGR2,vBG3,vGR4,vBG5,vGR6,vBG7;
 	ushort16 v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13;
+	ushort16 vBayerL0Seg0,vBayerL1Seg0,vBayerL2Seg0,vBayerL3Seg0;
+	ushort16 vBayerL0Seg1,vBayerL1Seg1,vBayerL2Seg1,vBayerL3Seg1;	
 	
 	ushort16 vR0offset,vR2offset,vR4offset,vR6offset;
 	ushort16 vB1offset,vB3offset,vB5offset,vB7offset;
@@ -80,7 +290,7 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 
 	ushort16 vRL0diff,vBL0diff,vG0L0diff,vG1L0diff;
 	ushort16 vRL1diff,vBL1diff,vG0L1diff,vG1L1diff;	
-	static unsigned short buff[2*4*32];
+	//static unsigned short buff[2*4*32];
 	unsigned short* pL0G0	 = buff;
 	unsigned short* pL0Red	 = buff+1;
 	unsigned short* pL0Blu	 = buff+32;
@@ -139,8 +349,15 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	uchar32 vcfgAdjGre1= *(uchar32*)(&cfg_adj_gre1);
 	uchar32 vcfgAdjGre2= *(uchar32*)(&cfg_adj_gre2);
 
-	
+	unsigned char cfg_pack0[32]  	= {	0, 16, 1, 17, 2, 18, 3, 19,
+										4, 20, 5, 21, 6, 22, 7, 23,
+									    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	unsigned char cfg_pack1[32]  	= { 8,  24, 9,  25, 10, 26, 11, 27, 
+										12, 28, 13, 29, 14, 30, 15, 31,
+										0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
+	uchar32	vcfgPack0	= *(uchar32*)(&cfg_pack0);
+	uchar32	vcfgPack1	= *(uchar32*)(&cfg_pack1);
 //#define G_RB_ARRANGE 0x55555555
 //#define RB_G_ARRANGE 0xaaaaaaaa
 
@@ -170,312 +387,346 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	vldchk(pInLine5, vB5, vG5);   vBG5 = *(ushort16*)(pInLine5+32);   pInLine5 += 8*stride;
 	vldchk(pInLine6, vG6, vR6);   vGR6 = *(ushort16*)(pInLine6+32);   pInLine6 += 8*stride;
 	vldchk(pInLine7, vB7, vG7);   vBG7 = *(ushort16*)(pInLine7+32);   pInLine7 += 8*stride;
+	// subtract blacklevel
+	vG0	= vsubsat(vG0, (unsigned short)64);
+	vR0	= vsubsat(vR0, (unsigned short)64);
+	vB1	= vsubsat(vB1, (unsigned short)64);
+	vG1	= vsubsat(vG1, (unsigned short)64);
+
+	vG2	= vsubsat(vG2, (unsigned short)64);
+	vR2	= vsubsat(vR2, (unsigned short)64);
+	vB3	= vsubsat(vB3, (unsigned short)64);
+	vG3	= vsubsat(vG3, (unsigned short)64);
+
+	vG4	= vsubsat(vG4, (unsigned short)64);
+	vR4	= vsubsat(vR4, (unsigned short)64);
+	vB5	= vsubsat(vB5, (unsigned short)64);
+	vG5	= vsubsat(vG5, (unsigned short)64);
 	
-	{
-		// ========= line 0 GRBG ==============
-		// -------------r-----------------
-		// abs(R0-R4),abs(R2 - R2+4)
-		// ----
-		vR0offset	= (ushort16)vperm(vR0,vGR0,vcfgAdjRed1);
-		vR4offset	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed1);
-		vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed2);
-	#if CODE_SCATTER
-		v0			= vabssub(vR0offset, vR4offset);
-		v1			= vabssub(vR2, vR2offset);
-		v2			= (ushort16)vadd(vR0offset, vR4offset);
-		v3			= (ushort16)vadd(vR2, vR2offset); 
-		SecMask 	= vcmp(lt,v0,v1);
-		vRL0best	= vselect(v2,v3,SecMask);
-	#else
-		SecMask 	= vcmp(lt,vabssub(vR0offset, vR4offset),vabssub(vR2, vR2offset));
-		vRL0best 	= vselect( (ushort16)vadd(vR0offset, vR4offset), (ushort16)vadd(vR2, vR2offset), SecMask); 
-	#endif
+	vG6	= vsubsat(vG6, (unsigned short)64);
+	vR6	= vsubsat(vR6, (unsigned short)64);
+	vB7	= vsubsat(vB7, (unsigned short)64);
+	vG7	= vsubsat(vG7, (unsigned short)64);
 
-		PRINT_CEVA_VRF("vRL0best", vRL0best, stderr);
+	vGR0	= vsubsat(vGR0, (unsigned short)64);
+	vBG1	= vsubsat(vBG1, (unsigned short)64);
+	vGR2	= vsubsat(vGR2, (unsigned short)64);
+	vBG3	= vsubsat(vBG3, (unsigned short)64);
 
-		// -------------b-----------------
-		// abs(B1-B5),abs(B3 - B3+4)
-		// ----
-		vB1offset	= (ushort16)vperm(vB1,vBG1,vcfgAdjBlu1);
-		vB5offset	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
-		vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu2);
-	#if CODE_SCATTER
-		v0			= vabssub(vB1offset, vB5offset);
-		v1			= vabssub(vB3, vB3offset);
-		v2			= (ushort16)vadd(vB1offset, vB5offset);
-		v3			= (ushort16)vadd(vB3, vB3offset); 
-		SecMask 	= vcmp(lt,v0,v1);
-		vBL0best	= vselect(v2,v3,SecMask);
-	#else
-		
-		SecMask 	= vcmp(lt,vabssub(vB1offset, vB5offset),vabssub(vB3, vB3offset));
-		vBL0best 	= vselect( (ushort16)vadd(vB1offset, vB5offset), (ushort16)vadd(vB3, vB3offset), SecMask); 
-	#endif
-		PRINT_CEVA_VRF("vBL0best", vBL0best, stderr);
-		// -------------G-----------------
-		// abs(G1-G3),abs(G2 - G4)
-		//  G1  G3 
-		vG1offset	= (ushort16)vperm(vG1,vBG1,vcfgAdjRed1);
-		vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
-	#if CODE_SCATTER
-		v0			= vabssub(vG1, vG3offset);
-		v1			= vabssub(vG3, vG1offset);
-		v2			= (ushort16)vadd(vG1, vG3offset);
-		v3			= (ushort16)vadd(vG3, vG1offset); 
-		SecMask 	= vcmp(lt,v0,v1);
-		vG0L0best	= vselect(v2,v3,SecMask);
-	#else
-		SecMask		= vcmp(lt,vabssub(vG1, vG3offset),vabssub(vG3, vG1offset));
-		vG0L0best 	= vselect( (ushort16)vadd(vG1, vG3offset), (ushort16)vadd(vG3, vG1offset), SecMask); 
-	#endif
-		PRINT_CEVA_VRF("vG0L0best", vG0L0best, stderr);
+	vGR4	= vsubsat(vGR4, (unsigned short)64);
+	vBG5	= vsubsat(vBG5, (unsigned short)64);
+	vGR6	= vsubsat(vGR6, (unsigned short)64);
+	vBG7	= vsubsat(vBG7, (unsigned short)64);
+	
+	// ========= line 0 GRBG ==============
+	// -------------r-----------------
+	// abs(R0-R4),abs(R2 - R2+4)
+	// ----
+	vR0offset	= (ushort16)vperm(vR0,vGR0,vcfgAdjRed1);
+	vR4offset	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed1);
+	vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed2);
+#if CODE_SCATTER
+	v0			= vabssub(vR0offset, vR4offset);
+	v1			= vabssub(vR2, vR2offset);
+	v2			= (ushort16)vadd(vR0offset, vR4offset);
+	v3			= (ushort16)vadd(vR2, vR2offset); 
+	SecMask 	= vcmp(lt,v0,v1);
+	vRL0best	= vselect(v2,v3,SecMask);
+#else
+	SecMask 	= vcmp(lt,vabssub(vR0offset, vR4offset),vabssub(vR2, vR2offset));
+	vRL0best 	= vselect( (ushort16)vadd(vR0offset, vR4offset), (ushort16)vadd(vR2, vR2offset), SecMask); 
+#endif
 
-		//  G2  G4  
-		vG2offset	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
-		vG4offset	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre1);
-		vG2offset_	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
-		vG4offset_	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre2);
-	#if CODE_SCATTER
-		v0			= vabssub(vG2offset, vG4offset_);
-		v1			= vabssub(vG4offset, vG2offset_);
-		v2			= (ushort16)vadd(vG2offset, vG4offset_);
-		v3			= (ushort16)vadd(vG4offset, vG2offset_); 
-		SecMask 	= vcmp(lt,v0,v1);
-		vG1L0best	= vselect(v2,v3,SecMask);
-	#else
-		SecMask		= vcmp(lt,vabssub(vG2offset, vG4offset_),vabssub(vG4offset, vG2offset_));
-		vG1L0best 	= vselect( (ushort16)vadd(vG2offset, vG4offset_), (ushort16)vadd(vG4offset, vG2offset_), SecMask); 
-	#endif
-		PRINT_CEVA_VRF("vG1L0best", vG1L0best, stderr);
-		// ========= line 1 GRBG ==============
-		// -------------r-----------------
-		// abs(R2-R6),abs(R4 - R4+4)
-		// ----
-		vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed1);
-		vR6offset	= (ushort16)vperm(vR6,vGR6,vcfgAdjRed1);
-		vR4offset	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed2);
-	#if CODE_SCATTER
-		v0			= vabssub(vR2offset, vR6offset);
-		v1			= vabssub(vR4, vR4offset);
-		v2			= (ushort16)vadd(vR2offset, vR6offset);
-		v3			= (ushort16)vadd(vR4, vR4offset); 
-		SecMask 	= vcmp(lt,v0,v1);
-		vRL1best	= vselect(v2,v3,SecMask);
-	#else
-		SecMask 	= vcmp(lt,vabssub(vR2offset, vR6offset),vabssub(vR4, vR4offset));
-		vRL1best 	= vselect( (ushort16)vadd(vR2offset, vR6offset), (ushort16)vadd(vR4, vR4offset), SecMask); 
-	#endif
-		PRINT_CEVA_VRF("vRL1best", vRL1best, stderr);
+	//PRINT_CEVA_VRF("vRL0best", vRL0best, stderr);
 
-		// -------------b-----------------
-		// abs(B3-B7),abs(B5 - B5+4)
-		// ----
-		vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu1);
-		vB7offset	= (ushort16)vperm(vB7,vBG7,vcfgAdjBlu1);
-		vB5offset	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu2);
-	#if CODE_SCATTER
-		v0			= vabssub(vB3offset, vB7offset);
-		v1			= vabssub(vB5, vB5offset);
-		v2			= (ushort16)vadd(vB3offset, vB7offset);
-		v3			= (ushort16)vadd(vB5, vB5offset); 
-		SecMask 	= vcmp(lt,v0,v1);
-		vBL1best	= vselect(v2,v3,SecMask);
-	#else
-		SecMask 	= vcmp(lt,vabssub(vB3offset, vB7offset),vabssub(vB5, vB5offset));
-		vBL1best 	= vselect( (ushort16)vadd(vB3offset, vB7offset), (ushort16)vadd(vB5, vB5offset), SecMask); 
-	#endif
-		PRINT_CEVA_VRF("vBL1best", vBL1best, stderr);
+	// -------------b-----------------
+	// abs(B1-B5),abs(B3 - B3+4)
+	// ----
+	vB1offset	= (ushort16)vperm(vB1,vBG1,vcfgAdjBlu1);
+	vB5offset	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
+	vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu2);
+#if CODE_SCATTER
+	v0			= vabssub(vB1offset, vB5offset);
+	v1			= vabssub(vB3, vB3offset);
+	v2			= (ushort16)vadd(vB1offset, vB5offset);
+	v3			= (ushort16)vadd(vB3, vB3offset); 
+	SecMask 	= vcmp(lt,v0,v1);
+	vBL0best	= vselect(v2,v3,SecMask);
+#else
+	
+	SecMask 	= vcmp(lt,vabssub(vB1offset, vB5offset),vabssub(vB3, vB3offset));
+	vBL0best 	= vselect( (ushort16)vadd(vB1offset, vB5offset), (ushort16)vadd(vB3, vB3offset), SecMask); 
+#endif
+	//PRINT_CEVA_VRF("vBL0best", vBL0best, stderr);
+	// -------------G-----------------
+	// abs(G1-G3),abs(G2 - G4)
+	//  G1  G3 
+	vG1offset	= (ushort16)vperm(vG1,vBG1,vcfgAdjRed1);
+	vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
+#if CODE_SCATTER
+	v0			= vabssub(vG1, vG3offset);
+	v1			= vabssub(vG3, vG1offset);
+	v2			= (ushort16)vadd(vG1, vG3offset);
+	v3			= (ushort16)vadd(vG3, vG1offset); 
+	SecMask 	= vcmp(lt,v0,v1);
+	vG0L0best	= vselect(v2,v3,SecMask);
+#else
+	SecMask		= vcmp(lt,vabssub(vG1, vG3offset),vabssub(vG3, vG1offset));
+	vG0L0best 	= vselect( (ushort16)vadd(vG1, vG3offset), (ushort16)vadd(vG3, vG1offset), SecMask); 
+#endif
+	//PRINT_CEVA_VRF("vG0L0best", vG0L0best, stderr);
 
+	//  G2  G4  
+	vG2offset	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
+	vG4offset	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre1);
+	vG2offset_	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
+	vG4offset_	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre2);
+#if CODE_SCATTER
+	v0			= vabssub(vG2offset, vG4offset_);
+	v1			= vabssub(vG4offset, vG2offset_);
+	v2			= (ushort16)vadd(vG2offset, vG4offset_);
+	v3			= (ushort16)vadd(vG4offset, vG2offset_); 
+	SecMask 	= vcmp(lt,v0,v1);
+	vG1L0best	= vselect(v2,v3,SecMask);
+#else
+	SecMask		= vcmp(lt,vabssub(vG2offset, vG4offset_),vabssub(vG4offset, vG2offset_));
+	vG1L0best 	= vselect( (ushort16)vadd(vG2offset, vG4offset_), (ushort16)vadd(vG4offset, vG2offset_), SecMask); 
+#endif
+	//PRINT_CEVA_VRF("vG1L0best", vG1L0best, stderr);
+	// ========= line 1 GRBG ==============
+	// -------------r-----------------
+	// abs(R2-R6),abs(R4 - R4+4)
+	// ----
+	vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed1);
+	vR6offset	= (ushort16)vperm(vR6,vGR6,vcfgAdjRed1);
+	vR4offset	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed2);
+#if CODE_SCATTER
+	v0			= vabssub(vR2offset, vR6offset);
+	v1			= vabssub(vR4, vR4offset);
+	v2			= (ushort16)vadd(vR2offset, vR6offset);
+	v3			= (ushort16)vadd(vR4, vR4offset); 
+	SecMask 	= vcmp(lt,v0,v1);
+	vRL1best	= vselect(v2,v3,SecMask);
+#else
+	SecMask 	= vcmp(lt,vabssub(vR2offset, vR6offset),vabssub(vR4, vR4offset));
+	vRL1best 	= vselect( (ushort16)vadd(vR2offset, vR6offset), (ushort16)vadd(vR4, vR4offset), SecMask); 
+#endif
+	//PRINT_CEVA_VRF("vRL1best", vRL1best, stderr);
 
-		// -------------G-----------------
-		// abs(G3-G5),abs(G4 - G6)
-		//  G3  G5 
-		vG5offset	= (ushort16)vperm(vG5,vBG5,vcfgAdjRed1);
-		//vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
-	#if CODE_SCATTER
-		v0			= vabssub(vG3, vG5offset);
-		v1			= vabssub(vG5, vG3offset);
-		v2			= (ushort16)vadd(vG3, vG5offset);
-		v3			= (ushort16)vadd(vG5, vG3offset); 
-		SecMask 	= vcmp(lt,v0,v1);
-		vG0L1best	= vselect(v2,v3,SecMask);
-	#else
-		
-		SecMask		= vcmp(lt,vabssub(vG3, vG5offset),vabssub(vG5, vG3offset));
-		vG0L1best 	= vselect( (ushort16)vadd(vG3, vG5offset), (ushort16)vadd(vG5, vG3offset), SecMask); 
-	#endif
-		PRINT_CEVA_VRF("vG0L1best", vG0L1best, stderr);
-		//  G4   G6 
-		vG6offset	= (ushort16)vperm(vG6,vGR6,vcfgAdjGre1);
-		//vG4offset	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre1);
-		vG6offset_	= (ushort16)vperm(vG6,vGR6,vcfgAdjGre2);
-		//vG4offset_	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre2);
-	#if CODE_SCATTER
-		v0			= vabssub(vG4offset, vG6offset_);
-		v1			= vabssub(vG6offset, vG4offset_);
-		v2			= (ushort16)vadd(vG4offset, vG6offset_);
-		v3			= (ushort16)vadd(vG6offset, vG4offset_); 
-		SecMask 	= vcmp(lt,v0,v1);
-		vG1L1best	= vselect(v2,v3,SecMask);
-	#else
-		SecMask		= vcmp(lt,vabssub(vG4offset, vG6offset_),vabssub(vG6offset, vG4offset_));
-		vG1L1best 	= vselect( (ushort16)vadd(vG4offset, vG6offset_), (ushort16)vadd(vG6offset, vG4offset_), SecMask); 
-	#endif
-		PRINT_CEVA_VRF("vG1L1best", vG1L1best, stderr);
-
-#define R_B_LONG_PATTERN	0XAAAA
-#define R_B_SHORT_PATTERN	0X5555 
-#define G_LONG_PATTERN		0XFFFF
-#define G_SHORT_PATTERN		0X0
-
-		// ------------------------------------------
-		// overlap the long time and short time image
-		// 4 Line x 32 for long and short.
-		// ------------------------------------------
-		// line 0 GRBG
-		vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
-		vRL0best	= (ushort16)vshiftr(vRL0best, (uchar)1);// times// interpoaltion		
-		vRL0Long		= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
-		PRINT_CEVA_VRF("vRL0Long", vRL0Long, stderr);
-		vRL0Short		= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
-		vRL0Short		= (ushort16)vshiftl(vRL0Short, 3);// times
-		PRINT_CEVA_VRF("vRL0Short", vRL0Short, stderr);
+	// -------------b-----------------
+	// abs(B3-B7),abs(B5 - B5+4)
+	// ----
+	vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu1);
+	vB7offset	= (ushort16)vperm(vB7,vBG7,vcfgAdjBlu1);
+	vB5offset	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu2);
+#if CODE_SCATTER
+	v0			= vabssub(vB3offset, vB7offset);
+	v1			= vabssub(vB5, vB5offset);
+	v2			= (ushort16)vadd(vB3offset, vB7offset);
+	v3			= (ushort16)vadd(vB5, vB5offset); 
+	SecMask 	= vcmp(lt,v0,v1);
+	vBL1best	= vselect(v2,v3,SecMask);
+#else
+	SecMask 	= vcmp(lt,vabssub(vB3offset, vB7offset),vabssub(vB5, vB5offset));
+	vBL1best 	= vselect( (ushort16)vadd(vB3offset, vB7offset), (ushort16)vadd(vB5, vB5offset), SecMask); 
+#endif
+	//PRINT_CEVA_VRF("vBL1best", vBL1best, stderr);
 
 
-		vB3packed	= vB3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
-		vBL0best	= (ushort16)vshiftr(vBL0best, (uchar)1);// times// interpoaltion		
-		vBL0Long		= vselect(vB3packed, vBL0best, R_B_LONG_PATTERN);
-		PRINT_CEVA_VRF("vBL0Long", vBL0Long, stderr);
-		vBL0Short		= vselect(vB3packed, vBL0best, R_B_SHORT_PATTERN);
-		vBL0Short		= (ushort16)vshiftl(vBL0Short, 3);// times
-		PRINT_CEVA_VRF("vBL0Short", vBL0Short, stderr);
+	// -------------G-----------------
+	// abs(G3-G5),abs(G4 - G6)
+	//  G3  G5 
+	vG5offset	= (ushort16)vperm(vG5,vBG5,vcfgAdjRed1);
+	//vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
+#if CODE_SCATTER
+	v0			= vabssub(vG3, vG5offset);
+	v1			= vabssub(vG5, vG3offset);
+	v2			= (ushort16)vadd(vG3, vG5offset);
+	v3			= (ushort16)vadd(vG5, vG3offset); 
+	SecMask 	= vcmp(lt,v0,v1);
+	vG0L1best	= vselect(v2,v3,SecMask);
+#else
+	
+	SecMask		= vcmp(lt,vabssub(vG3, vG5offset),vabssub(vG5, vG3offset));
+	vG0L1best 	= vselect( (ushort16)vadd(vG3, vG5offset), (ushort16)vadd(vG5, vG3offset), SecMask); 
+#endif
+	//PRINT_CEVA_VRF("vG0L1best", vG0L1best, stderr);
+	//  G4   G6 
+	vG6offset	= (ushort16)vperm(vG6,vGR6,vcfgAdjGre1);
+	//vG4offset	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre1);
+	vG6offset_	= (ushort16)vperm(vG6,vGR6,vcfgAdjGre2);
+	//vG4offset_	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre2);
+#if CODE_SCATTER
+	v0			= vabssub(vG4offset, vG6offset_);
+	v1			= vabssub(vG6offset, vG4offset_);
+	v2			= (ushort16)vadd(vG4offset, vG6offset_);
+	v3			= (ushort16)vadd(vG6offset, vG4offset_); 
+	SecMask 	= vcmp(lt,v0,v1);
+	vG1L1best	= vselect(v2,v3,SecMask);
+#else
+	SecMask		= vcmp(lt,vabssub(vG4offset, vG6offset_),vabssub(vG6offset, vG4offset_));
+	vG1L1best 	= vselect( (ushort16)vadd(vG4offset, vG6offset_), (ushort16)vadd(vG6offset, vG4offset_), SecMask); 
+#endif
+	//PRINT_CEVA_VRF("vG1L1best", vG1L1best, stderr);
+
+	// ------------------------------------------
+	// overlap the long time and short time image
+	// 4 Line x 32 for long and short.
+	// ------------------------------------------
+	// line 0 GRBG
+	vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
+	vRL0best	= (ushort16)vshiftr(vRL0best, (uchar)1);// times// interpoaltion		
+	vRL0Long		= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
+	//PRINT_CEVA_VRF("vRL0Long", vRL0Long, stderr);
+	vRL0Short		= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
+	vRL0Short		= (ushort16)vshiftl(vRL0Short, 3);// times
+	//PRINT_CEVA_VRF("vRL0Short", vRL0Short, stderr);
 
 
-		vG2packed	= vG2offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
-		vG0L0best	= (ushort16)vshiftr(vG0L0best, (uchar)1);// times// interpoaltion		
-		vG0L0Long		= vselect(vG2packed, vG0L0best, G_LONG_PATTERN);
-		PRINT_CEVA_VRF("vG0L0Long", vG0L0Long, stderr);
-		vG0L0Short	= vselect(vG2packed, vG0L0best, G_SHORT_PATTERN);
-		vG0L0Short	= (ushort16)vshiftl(vG0L0Short, 3);// times
-		PRINT_CEVA_VRF("vG0L0Short", vG0L0Short, stderr);
-
-		vG3packed	= vG3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
-		vG1L0best	= (ushort16)vshiftr(vG1L0best, (uchar)1);// times// interpoaltion		
-		vG1L0Long		= vselect(vG3packed, vG1L0best, G_SHORT_PATTERN);
-		PRINT_CEVA_VRF("vG1L0Long", vG1L0Long, stderr);
-		vG1L0Short	= vselect(vG3packed, vG1L0best, G_LONG_PATTERN);
-		vG1L0Short	= (ushort16)vshiftl(vG1L0Short, 3);// times
-		PRINT_CEVA_VRF("vG1L0Short", vG1L0Short, stderr);
-
-		// line 1 GRBG
-		vR4packed	= (ushort16)vperm(vR4,vGR4,vcfgAdjRedPack); // orignal
-		vRL1best	= (ushort16)vshiftr(vRL1best, (uchar)1);// times// interpoaltion		
-		vRL1Long		= vselect(vR4packed, vRL1best, R_B_SHORT_PATTERN);
-		PRINT_CEVA_VRF("vRL1Long", vRL1Long, stderr);
-		vRL1Short		= vselect(vR4packed, vRL1best, R_B_LONG_PATTERN);
-		vRL1Short		= (ushort16)vshiftl(vRL1Short, 3);// times
-		PRINT_CEVA_VRF("vRL1Short", vRL1Short, stderr);
+	vB3packed	= vB3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+	vBL0best	= (ushort16)vshiftr(vBL0best, (uchar)1);// times// interpoaltion		
+	vBL0Long		= vselect(vB3packed, vBL0best, R_B_LONG_PATTERN);
+	//PRINT_CEVA_VRF("vBL0Long", vBL0Long, stderr);
+	vBL0Short		= vselect(vB3packed, vBL0best, R_B_SHORT_PATTERN);
+	vBL0Short		= (ushort16)vshiftl(vBL0Short, 3);// times
+	//PRINT_CEVA_VRF("vBL0Short", vBL0Short, stderr);
 
 
-		vB5packed	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
-		vBL1best	= (ushort16)vshiftr(vBL1best, (uchar)1);// times// interpoaltion		
-		vBL1Long		= vselect(vB5packed, vBL1best, R_B_SHORT_PATTERN );
-		PRINT_CEVA_VRF("vBL1Long", vBL1Long, stderr);
-		vBL1Short		= vselect(vB5packed, vBL1best, R_B_LONG_PATTERN);
-		vBL1Short		= (ushort16)vshiftl(vBL1Short, 3);// times
-		PRINT_CEVA_VRF("vBL1Short", vBL1Short, stderr);
+	vG2packed	= vG2offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+	vG0L0best	= (ushort16)vshiftr(vG0L0best, (uchar)1);// times// interpoaltion		
+	vG0L0Long		= vselect(vG2packed, vG0L0best, G_LONG_PATTERN);
+	//PRINT_CEVA_VRF("vG0L0Long", vG0L0Long, stderr);
+	vG0L0Short	= vselect(vG2packed, vG0L0best, G_SHORT_PATTERN);
+	vG0L0Short	= (ushort16)vshiftl(vG0L0Short, 3);// times
+	//PRINT_CEVA_VRF("vG0L0Short", vG0L0Short, stderr);
+
+	vG3packed	= vG3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+	vG1L0best	= (ushort16)vshiftr(vG1L0best, (uchar)1);// times// interpoaltion		
+	vG1L0Long		= vselect(vG3packed, vG1L0best, G_SHORT_PATTERN);
+	//PRINT_CEVA_VRF("vG1L0Long", vG1L0Long, stderr);
+	vG1L0Short	= vselect(vG3packed, vG1L0best, G_LONG_PATTERN);
+	vG1L0Short	= (ushort16)vshiftl(vG1L0Short, 3);// times
+	//PRINT_CEVA_VRF("vG1L0Short", vG1L0Short, stderr);
+
+	// line 1 GRBG
+	vR4packed	= (ushort16)vperm(vR4,vGR4,vcfgAdjRedPack); // orignal
+	vRL1best	= (ushort16)vshiftr(vRL1best, (uchar)1);// times// interpoaltion		
+	vRL1Long		= vselect(vR4packed, vRL1best, R_B_SHORT_PATTERN);
+	//PRINT_CEVA_VRF("vRL1Long", vRL1Long, stderr);
+	vRL1Short		= vselect(vR4packed, vRL1best, R_B_LONG_PATTERN);
+	vRL1Short		= (ushort16)vshiftl(vRL1Short, 3);// times
+	//PRINT_CEVA_VRF("vRL1Short", vRL1Short, stderr);
 
 
-		vG4packed	= vG4offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
-		vG0L1best	= (ushort16)vshiftr(vG0L1best, (uchar)1);// times// interpoaltion		
-		vG0L1Long		= vselect(vG4packed, vG0L1best, G_LONG_PATTERN);
-		PRINT_CEVA_VRF("vG0L1Long", vG0L1Long, stderr);
-		vG0L1Short	= vselect(vG4packed, vG0L1best, G_SHORT_PATTERN);
-		vG0L1Short	= (ushort16)vshiftl(vG0L1Short, 3);// times
-		PRINT_CEVA_VRF("vG0L1Short", vG0L1Short, stderr);
-
-		vG5packed	= vG5offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
-		vG1L1best	= (ushort16)vshiftr(vG1L1best, (uchar)1);// times// interpoaltion		
-		vG1L1Long		= vselect(vG5packed, vG1L1best, G_SHORT_PATTERN);
-		PRINT_CEVA_VRF("vG1L1Long", vG1L1Long, stderr);
-		vG1L1Short	= vselect(vG5packed, vG1L0best, G_LONG_PATTERN);
-		vG1L1Short	= (ushort16)vshiftl(vG1L1Short, 3);// times
-		PRINT_CEVA_VRF("vG1L1Short", vG1L1Short, stderr);
-
-		// data arrange as scatter, store out to packed bayer.
-		vpst(vRL0Long, 	pL0Red, vOffsetGap2);
-		vpst(vBL0Long,  pL0Blu, vOffsetGap2);
-		vpst(vG0L0Long, pL0G0,  vOffsetGap2);
-		vpst(vG1L0Long, pL0G1,  vOffsetGap2);
-
-		vpst(vRL0Short,	 pL0Red_s, vOffsetGap2);
-		vpst(vBL0Short,  pL0Blu_s, vOffsetGap2);
-		vpst(vG0L0Short, pL0G0_s,  vOffsetGap2);
-		vpst(vG1L0Short, pL0G1_s,  vOffsetGap2);
-
-		vpst(vRL1Long, 	pL1Red, vOffsetGap2);
-		vpst(vBL1Long,  pL1Blu, vOffsetGap2);
-		vpst(vG0L1Long, pL1G0,  vOffsetGap2);
-		vpst(vG1L1Long, pL1G1,  vOffsetGap2);
-
-		vpst(vRL1Short,	 pL1Red_s, vOffsetGap2);
-		vpst(vBL1Short,  pL1Blu_s, vOffsetGap2);
-		vpst(vG0L1Short, pL1G0_s,  vOffsetGap2);
-		vpst(vG1L1Short, pL1G1_s,  vOffsetGap2);
-
-/*
-		// ------------------------------------------
-		// use difference to LUT
-		// ------------------------------------------
-		vRL0diff	= vabssub(vRL0Short, vRL0Long);
-		vBL0diff	= vabssub(vBL0Short, vBL0Long);
-		vG0L0diff	= vabssub(vG0L0Short, vG0L0Long);
-		vG1L0diff	= vabssub(vG1L0Short, vG1L0Long);
-
-		vRL1diff	= vabssub(vRL1Short, vRL1Long);
-		vBL1diff	= vabssub(vBL1Short, vBL1Long);
-		vG0L1diff	= vabssub(vG0L1Short, vG0L1Long);
-		vG1L1diff	= vabssub(vG1L1Short, vG1L1Long);
-
-		// scale the diff by [2^param.bits/(param.noise*param.exptimes)]
-		vRL0diff 	= vshiftl(vRL0diff , 1); 
-		vBL0diff 	= vshiftl(vBL0diff , 1); 
-		vG0L0diff	= vshiftl(vG0L0diff, 1); 
-		vG1L0diff	= vshiftl(vG1L0diff, 1); 
-		vRL1diff 	= vshiftl(vRL1diff , 1); 
-		vBL1diff 	= vshiftl(vBL1diff , 1); 
-		vG0L1diff	= vshiftl(vG0L1diff, 1); 
-		vG1L1diff	= vshiftl(vG1L1diff, 1); 
-
-		// and min(x,ref)
-		vRL0diff 	= vmin(vRL0diff , (ushort16) normValue);         
-		vBL0diff 	= vmin(vBL0diff , (ushort16) normValue);         
-		vG0L0diff	= vmin(vG0L0diff, (ushort16) normValue);         
-		vG1L0diff	= vmin(vG1L0diff, (ushort16) normValue);         
-		vRL1diff 	= vmin(vRL1diff , (ushort16) normValue);         
-		vBL1diff 	= vmin(vBL1diff , (ushort16) normValue);         
-		vG0L1diff	= vmin(vG0L1diff, (ushort16) normValue);         
-		vG1L1diff	= vmin(vG1L1diff, (ushort16) normValue);         
-
-		// LUT
-		
-		v0 = vpld(p_u16Tab, vRL0diff);
-		v1 = vpld(p_u16Tab, vBL0diff);
-		v2 = vpld(p_u16Tab, vG0L0diff);
-		v3 = vpld(p_u16Tab, vG1L0diff);
-
-		v4 = vpld(p_u16Tab, vRL1diff);
-		v5 = vpld(p_u16Tab, vBL1diff);
-		v6 = vpld(p_u16Tab, vG0L1diff);
-		v7 = vpld(p_u16Tab, vG1L1diff);		
-*/
-		// max3x3 filter
+	vB5packed	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
+	vBL1best	= (ushort16)vshiftr(vBL1best, (uchar)1);// times// interpoaltion		
+	vBL1Long		= vselect(vB5packed, vBL1best, R_B_SHORT_PATTERN );
+	//PRINT_CEVA_VRF("vBL1Long", vBL1Long, stderr);
+	vBL1Short		= vselect(vB5packed, vBL1best, R_B_LONG_PATTERN);
+	vBL1Short		= (ushort16)vshiftl(vBL1Short, 3);// times
+	//PRINT_CEVA_VRF("vBL1Short", vBL1Short, stderr);
 
 
-		// bilinear
-		
-	}//n	
-	//PROFILER_END();
+	vG4packed	= vG4offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+	vG0L1best	= (ushort16)vshiftr(vG0L1best, (uchar)1);// times// interpoaltion		
+	vG0L1Long		= vselect(vG4packed, vG0L1best, G_LONG_PATTERN);
+	//PRINT_CEVA_VRF("vG0L1Long", vG0L1Long, stderr);
+	vG0L1Short	= vselect(vG4packed, vG0L1best, G_SHORT_PATTERN);
+	vG0L1Short	= (ushort16)vshiftl(vG0L1Short, 3);// times
+	//PRINT_CEVA_VRF("vG0L1Short", vG0L1Short, stderr);
+
+	vG5packed	= vG5offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+	vG1L1best	= (ushort16)vshiftr(vG1L1best, (uchar)1);// times// interpoaltion		
+	vG1L1Long		= vselect(vG5packed, vG1L1best, G_SHORT_PATTERN);
+	//PRINT_CEVA_VRF("vG1L1Long", vG1L1Long, stderr);
+	vG1L1Short	= vselect(vG5packed, vG1L0best, G_LONG_PATTERN);
+	vG1L1Short	= (ushort16)vshiftl(vG1L1Short, 3);// times
+	//PRINT_CEVA_VRF("vG1L1Short", vG1L1Short, stderr);
+#if 1
+	// data arrange as scatter, store out to packed bayer.
+	vpst(vRL0Long, 	pL0Red, vOffsetGap2);
+	vpst(vBL0Long,  pL0Blu, vOffsetGap2);
+	vpst(vG0L0Long, pL0G0,  vOffsetGap2);
+	vpst(vG1L0Long, pL0G1,  vOffsetGap2);
+
+	vpst(vRL0Short,	 pL0Red_s, vOffsetGap2);
+	vpst(vBL0Short,  pL0Blu_s, vOffsetGap2);
+	vpst(vG0L0Short, pL0G0_s,  vOffsetGap2);
+	vpst(vG1L0Short, pL0G1_s,  vOffsetGap2);
+
+	vpst(vRL1Long, 	pL1Red, vOffsetGap2);
+	vpst(vBL1Long,  pL1Blu, vOffsetGap2);
+	vpst(vG0L1Long, pL1G0,  vOffsetGap2);
+	vpst(vG1L1Long, pL1G1,  vOffsetGap2);
+
+	vpst(vRL1Short,	 pL1Red_s, vOffsetGap2);
+	vpst(vBL1Short,  pL1Blu_s, vOffsetGap2);
+	vpst(vG0L1Short, pL1G0_s,  vOffsetGap2);
+	vpst(vG1L1Short, pL1G1_s,  vOffsetGap2);
+#endif
+
+#if 0
+	// ------------------------------------------
+	// use difference to LUT
+	// ------------------------------------------
+	vRL0diff	= vabssub(vRL0Short, vRL0Long);
+	vBL0diff	= vabssub(vBL0Short, vBL0Long);
+	vG0L0diff	= vabssub(vG0L0Short, vG0L0Long);
+	vG1L0diff	= vabssub(vG1L0Short, vG1L0Long);
+
+	vRL1diff	= vabssub(vRL1Short, vRL1Long);
+	vBL1diff	= vabssub(vBL1Short, vBL1Long);
+	vG0L1diff	= vabssub(vG0L1Short, vG0L1Long);
+	vG1L1diff	= vabssub(vG1L1Short, vG1L1Long);
+
+	// scale the diff by [2^param.bits/(param.noise*param.exptimes)] = 1024/(64*8)
+	vRL0diff 	= (ushort16)vshiftl(vRL0diff , 1); 
+	vBL0diff 	= (ushort16)vshiftl(vBL0diff , 1); 
+	vG0L0diff	= (ushort16)vshiftl(vG0L0diff, 1); 
+	vG1L0diff	= (ushort16)vshiftl(vG1L0diff, 1); 
+	vRL1diff 	= (ushort16)vshiftl(vRL1diff , 1); 
+	vBL1diff 	= (ushort16)vshiftl(vBL1diff , 1); 
+	vG0L1diff	= (ushort16)vshiftl(vG0L1diff, 1); 
+	vG1L1diff	= (ushort16)vshiftl(vG1L1diff, 1); 
+
+	// and min(x,ref)
+	vRL0diff 	= vmin(vRL0diff , (ushort16) normValue);         
+	vBL0diff 	= vmin(vBL0diff , (ushort16) normValue);         
+	vG0L0diff	= vmin(vG0L0diff, (ushort16) normValue);         
+	vG1L0diff	= vmin(vG1L0diff, (ushort16) normValue);         
+	vRL1diff 	= vmin(vRL1diff , (ushort16) normValue);         
+	vBL1diff 	= vmin(vBL1diff , (ushort16) normValue);         
+	vG0L1diff	= vmin(vG0L1diff, (ushort16) normValue);         
+	vG1L1diff	= vmin(vG1L1diff, (ushort16) normValue);         
+
+	// perm to packed format.
+	vBayerL0Seg0 = (ushort16)vperm(vG0L0diff,vRL0diff,vcfgPack0);//G R
+	vBayerL0Seg1 = (ushort16)vperm(vG0L0diff,vRL0diff,vcfgPack1);//G R
+	vBayerL1Seg0 = (ushort16)vperm(vBL0diff,vG1L0diff,vcfgPack0);//G R
+	vBayerL1Seg1 = (ushort16)vperm(vBL0diff,vG1L0diff,vcfgPack1);//G R
+
+	vBayerL2Seg0 = (ushort16)vperm(vG0L1diff,vRL1diff,vcfgPack0);//G R
+	vBayerL2Seg1 = (ushort16)vperm(vG0L1diff,vRL1diff,vcfgPack1);//G R
+	vBayerL3Seg0 = (ushort16)vperm(vBL1diff,vG1L1diff,vcfgPack0);//G R
+	vBayerL3Seg1 = (ushort16)vperm(vBL1diff,vG1L1diff,vcfgPack1);//G R
+
+	// LUT
+	
+	v0 = vpld(p_u16Tab, (short16)vBayerL0Seg0);
+	v1 = vpld(p_u16Tab, (short16)vBayerL0Seg1);
+	v2 = vpld(p_u16Tab, (short16)vBayerL1Seg0);
+	v3 = vpld(p_u16Tab, (short16)vBayerL1Seg1);
+
+	v4 = vpld(p_u16Tab, (short16)vBayerL2Seg0);
+	v5 = vpld(p_u16Tab, (short16)vBayerL2Seg1);
+	v6 = vpld(p_u16Tab, (short16)vBayerL3Seg0);
+	v7 = vpld(p_u16Tab, (short16)vBayerL3Seg1);		
+
+#endif	
+
+#ifdef __XM4__
+	PROFILER_END();
+#endif	
 }
 
 
