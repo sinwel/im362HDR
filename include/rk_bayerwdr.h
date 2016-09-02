@@ -52,10 +52,11 @@
 #define MAX_BIT_V_MINUS1 	((1<<SHIFT_BIT) - 1)
 #define SPLIT_SIZE 			MAX_BIT_VALUE
 
-#define     FAST_BY_SKIP_LIGHT_INTERPOLATION    0 
-#define     WDR_USE_THUMB_LUMA                  1 
-#define     WDR_USE_LUMA_DISTRI_VECC            1
-#define     WDR_USE_PIXEL_IN_FILTER_VECC        1
+#define     HDR_BLOCK_W	    64
+#define     HDR_BLOCK_H	    32
+#define     HDR_PADDING 	2
+#define	    HDR_SRC_STRIDE (HDR_BLOCK_W+2*HDR_PADDING)
+
 #define     WDR_USE_CEVA_VECC                   1 
 
 #define     WDR_SIMU_DEBUG                      0 // debug the wdr only.

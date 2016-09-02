@@ -1,6 +1,25 @@
 #include <string.h>
 #include "rk_typedef.h"              // Type definition
 #include "rk_bayerwdr.h"
+
+
+// define the block parameters.
+
+RK_U16		p_u16Src[8*52] =
+{
+	#include "../data/data8x52.dat"
+};
+RK_U16		p_u16Tab[961] =
+{
+	#include "../table/tone_mapping_961.dat"
+};
+
+RK_U16		pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W];
+
+RK_U16		pWeightBuff[2][HDR_BLOCK_H*HDR_BLOCK_W];
+
+RK_U16		pHDRout[HDR_BLOCK_H*HDR_BLOCK_W];
+
 //////////////////////////////////////////////////////////////////////////
 ////-------- Functions Definition
 //
@@ -70,11 +89,12 @@ void Max3x3(	RK_U16 *p_u16Src,
 
 void zigzagDebayer(	RK_U16 *p_u16Src, 
 						RK_U16 *p_u16Tab, 
-						RK_U16 width,
+						RK_U16 blockW,
+						RK_U16 blockH,
 						RK_U16 stride,
 						RK_U16 normValue,
-						RK_U16 *p_u16Dst	//<<! [out]
-						) ;
+						RK_U16 *buff	//<<! [out] 4x32 short16 for 4x32 block 
+						);
 
 
 
@@ -111,58 +131,31 @@ void dma_outtransf(unsigned short *frame, unsigned short *cache, int yoffset, in
 
 
 
-RK_U16		p_u16Src[8*52] =
+
+void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, bool bFristCTUline,int validW, int validH)
 {
-	#include "../data/data8x52.dat"
-};
-RK_U16		p_u16Tab[961] =
-{
-	#include "../table/tone_mapping_961.dat"
-};
-
-RK_U16		pL_S_ImageBuffA[2*4*32];
-RK_U16		pL_S_ImageBuffB[2*4*32];
-
-RK_U16		pWeightBuffA[4*32];
-RK_U16		pWeightBuffB[4*32];
-
-RK_U16		pHDRout[4*32];
-
-void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, int offset_pi, int offset_pd)
-{
-	int 	ret,i,j,pingpang = 0; 
+	int 	ret,i,j,buffIdx = 0; 
 	int 	stride = 32;
 	RK_U16  normValue = 1024 - 64;
-	RK_U16	*plongshortBuff;
-	RK_U16	*pWeightBuff;
 	
-	if (pingpang & 1)
-	{
-		plongshortBuff	= pL_S_ImageBuffA;
-		pWeightBuff		= pWeightBuffA;
-	}
-	else
-	{
-		plongshortBuff	= pL_S_ImageBuffB;
-		pWeightBuff		= pWeightBuffB;
-	}
-	pingpang++;
-	zigzagDebayer(	p_u16Src,
-					p_u16Tab,
-					32,
-					52,
-					1024-64,
-					plongshortBuff	//<<! [out]
-						); 	
 
-	residualLUT(plongshortBuff, 		//<<! [in] long time image.
-				plongshortBuff + 4*32, 	//<<! [in] short time image.
+	zigzagDebayer(	bFristCTUline ? pRawInBuff + 2*HDR_SRC_STRIDE : pRawInBuff,
+					p_u16Tab,
+					validW,
+					validH,
+					HDR_SRC_STRIDE,
+					1024-64,
+					pL_S_ImageBuff[buffIdx]); 	
+/*
+	residualLUT(pL_S_ImageBuff[(buffIdx+1)&1],			//<<! [in] long time image.
+				pL_S_ImageBuff[(buffIdx+1)&1] + 4*32, 	//<<! [in] short time image.
 				p_u16Tab, 				//<<! [in] table
-				pWeightBuff,			//<<! [out] bilinear weight
+				pWeightBuff[buffIdx],			//<<! [out] bilinear weight
 				stride, 				//<<! [in] 
 				normValue, 				//<<! [in] refValue
 				32);	
-	
+*/
+	buffIdx++;
 }
 
 void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned short *simage, int W, int H, int times, int noise_thred)
@@ -222,38 +215,38 @@ void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned shor
 		}
 	}
 #else
-	int padding	   = 2;
-	int blkWid	   = 64;
-	int blkHgt	   = 32;
+	int padding	   = HDR_PADDING;
+	int blkWid	   = HDR_BLOCK_W;
+	int blkHgt	   = HDR_BLOCK_H;
 	int buffIdx	   = 0;
 	int nHdrBufWid = blkWid + 2*padding;
 	int rows	   = ((H+blkHgt-1)/blkHgt)*blkHgt;
 	int cols	   = ((W+blkWid-1)/blkWid)*blkWid;
 
 	
-	RK_U16 	pHdrRawBlockBuf[2][(32+4)*(64+2*2)]= {0};
-	RK_U16 	pHdrOutBuf[2][32*64]		= {0};
-	RK_U16	pHdrRawRowBuf[4*4096] 	= {0};		// 2* Line
-	RK_U16	pHdrRawColBuf[2*32]		= {0};	  	// 2  col
+	RK_U16 	pHdrRawBlockBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)]	= {0};
+	RK_U16 	pHdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]										= {0};
+	RK_U16	pHdrRawRowBuf[2*HDR_PADDING*4096] 											= {0};		// 2* Line
+	RK_U16	pHdrRawColBuf[HDR_PADDING*HDR_BLOCK_H]										= {0};	  	// 2  col
 
 	
-	for (int y = 0; y < rows; y += blkHgt)
+	for (int y = 0; y < rows; y += HDR_BLOCK_H)
 	{
 
-		for (int x = 0; x < cols; x += blkWid)
+		for (int x = 0; x < cols; x += HDR_BLOCK_W)
 		{
 
 			// Fill Block32x64 from TemporalDenoise
-		    CopyBlockData(src+x, 		  pHdrRawBlockBuf[buffIdx]+4*nHdrBufWid+2, min_(blkWid,W-x), min_(blkHgt,H-y), W*2, nHdrBufWid*2);
+		    CopyBlockData(src+x, 		  pHdrRawBlockBuf[buffIdx]+4*nHdrBufWid+2, min_(HDR_BLOCK_W,W-x), min_(HDR_BLOCK_H,H-y), W*2, nHdrBufWid*2);
 
 		    // Fill 4-TopExternalRows from RowBuf
 		    CopyBlockData(pHdrRawRowBuf+x,pHdrRawBlockBuf[buffIdx],                nHdrBufWid, 4,    4096*2, nHdrBufWid*2);
 
 		    // Fill 2-LeftCol from ColBuf
-		    CopyBlockData(pHdrRawColBuf,  pHdrRawBlockBuf[buffIdx]+4*nHdrBufWid,   2,     blkHgt, 	 2*2, nHdrBufWid*2);
+		    CopyBlockData(pHdrRawColBuf,  pHdrRawBlockBuf[buffIdx]+4*nHdrBufWid,   2,     HDR_BLOCK_H, 	 2*2, nHdrBufWid*2);
 
 		    // Update 2-RightCol
-		    CopyBlockData(pHdrRawBlockBuf[buffIdx]+5*nHdrBufWid-4, pHdrRawColBuf,  2, 	  blkHgt,    nHdrBufWid*2, 2*2);
+		    CopyBlockData(pHdrRawBlockBuf[buffIdx]+5*nHdrBufWid-4, pHdrRawColBuf,  2, 	  HDR_BLOCK_H,    nHdrBufWid*2, 2*2);
 
 
 			
@@ -269,14 +262,14 @@ void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned shor
 		        // Fill 2-RightCol from AnotherBuf
 				CopyBlockData(pHdrRawBlockBuf[(buffIdx+1)&1] + 4*nHdrBufWid + 2, 
 				              pHdrRawBlockBuf[buffIdx] + 5*nHdrBufWid - 2, 
-				              2, blkHgt, nHdrBufWid*2, nHdrBufWid*2);
+				              2, HDR_BLOCK_H, nHdrBufWid*2, nHdrBufWid*2);
 
 				// Update 4-BottomRows to RowBuf, waiting bottom-right corner data.
-				CopyBlockData(pHdrRawBlockBuf[buffIdx] + blkHgt*nHdrBufWid, 
-				              pHdrRawRowBuf + x - blkWid, 
+				CopyBlockData(pHdrRawBlockBuf[buffIdx] + HDR_BLOCK_H*nHdrBufWid, 
+				              pHdrRawRowBuf + x - HDR_BLOCK_W, 
 				              nHdrBufWid, 4, nHdrBufWid*2, 4096*2);
 
-				;//hdr_block_process(pHdrRawBlockBuf[buffIdx], pHdrOutBuf[buffIdx], x+32, x);
+				hdr_block_process(pHdrRawBlockBuf[buffIdx], pHdrOutBuf[buffIdx], y < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x), min_(HDR_BLOCK_H,H-y));
 		    }
 
 			
