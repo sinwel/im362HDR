@@ -247,7 +247,7 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 						) 
 {
 #ifdef __XM4__
-	PROFILER_START(4, 32);
+	PROFILER_START(32, 64);
 #endif
 	unsigned short   i,j,SecMask;
 	ushort16 vG0,vR0,vB1,vG1,vG2,vR2,vB3,vG3,vG4,vR4,vB5,vG5,vG6,vR6,vB7,vG7;

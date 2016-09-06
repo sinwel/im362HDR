@@ -160,7 +160,7 @@ void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, bool bFristCTUli
 
 #if DEBUG_OUTPUT_FILES
     char name_str[512];
-	if  ( countFiles < 128)
+	if  ( countFiles < 128 && x_pos < 4 )
 	{
 #if __XM4__
 		sprintf(name_str, "%s_%04d-%04d.dat", "long_short_image_ceva", y_pos,x_pos);
