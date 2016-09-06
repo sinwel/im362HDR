@@ -23,6 +23,7 @@
 #include <vec-c.h>
 #include "rk_typedef.h"
 #include "rk_bayerwdr.h"
+#include "profiler.h"
 #if WIN32
 #include <stdlib.h>
 void writeFile(RK_U16 *data, int Num, char* FileName)
@@ -37,6 +38,13 @@ void writeFile(RK_U16 *data, int Num, char* FileName)
 		}
 	}
 
+	fclose(fp);
+}
+
+void writeBinFile(RK_U16 *data, int Num, char* FileName)
+{
+	FILE* fp = fopen(FileName,"wb");
+	fwrite(data,sizeof(RK_U16),Num,fp);
 	fclose(fp);
 }
 #endif
@@ -271,8 +279,8 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	ushort16 vBayerL0Seg0,vBayerL1Seg0,vBayerL2Seg0,vBayerL3Seg0;
 	ushort16 vBayerL0Seg1,vBayerL1Seg1,vBayerL2Seg1,vBayerL3Seg1;	
 	
-	ushort16 vR0offset,vR2offset,vR4offset,vR6offset;
-	ushort16 vB1offset,vB3offset,vB5offset,vB7offset;
+	ushort16 vR0offset,vR2offset,vR2offset_,vR4offset,vR4offset_,vR6offset;
+	ushort16 vB1offset,vB3offset,vB3offset_,vB5offset,vB5offset_,vB7offset;
 	ushort16 vG2offset,vG2offset_,vG4offset,vG4offset_;
 	ushort16 vG1offset,vG3offset,vG3offset_;
 	ushort16 vG6offset,vG6offset_,vG5offset,vG5offset_;	
@@ -322,7 +330,11 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	unsigned short* pInLine5 = p_u16Src + 5*stride	;	// + 2 LOAD B 
 	unsigned short* pInLine6 = p_u16Src + 6*stride	;	// + 2 LOAD B 
 	unsigned short* pInLine7 = p_u16Src + 7*stride	;	// + 2 LOAD B 
-
+	// g r
+	// b g
+	// perm cfg:
+	// g0 is same with b
+	// g1 is same with r
 	unsigned char cfg_adj_red1[32] 		= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,
 											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	unsigned char cfg_adj_red2[32] 		= {2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,16+3,
@@ -379,29 +391,53 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 
 
 	//  6 x 3 = 15 reg for one pixel interpolation.		
-
-	for ( j = 0 ; j < blockH/4; j++ )
+	for ( i = 0 ; i < blockW/32 ; i++ )
 	{
-		for ( i = 0 ; i < blockW/32 ; i++ )
-		{
-			vldchk(pInLine0, vG0, vR0);   vGR0 = *(ushort16*)(pInLine0+32);   pInLine0 += 8*stride;
-			vldchk(pInLine1, vB1, vG1);   vBG1 = *(ushort16*)(pInLine1+32);   pInLine1 += 8*stride;
-			vldchk(pInLine2, vG2, vR2);   vGR2 = *(ushort16*)(pInLine2+32);   pInLine2 += 8*stride;
-			vldchk(pInLine3, vB3, vG3);   vBG3 = *(ushort16*)(pInLine3+32);   pInLine3 += 8*stride;
-			vldchk(pInLine4, vG4, vR4);   vGR4 = *(ushort16*)(pInLine4+32);   pInLine4 += 8*stride;
-			vldchk(pInLine5, vB5, vG5);   vBG5 = *(ushort16*)(pInLine5+32);   pInLine5 += 8*stride;
-			vldchk(pInLine6, vG6, vR6);   vGR6 = *(ushort16*)(pInLine6+32);   pInLine6 += 8*stride;
-			vldchk(pInLine7, vB7, vG7);   vBG7 = *(ushort16*)(pInLine7+32);   pInLine7 += 8*stride;
-			// subtract blacklevel
-			vG0	= vsubsat(vG0, (unsigned short)64);
-			vR0	= vsubsat(vR0, (unsigned short)64);
-			vB1	= vsubsat(vB1, (unsigned short)64);
-			vG1	= vsubsat(vG1, (unsigned short)64);
+		vldchk(pInLine0, vG0, vR0);   vGR0 = *(ushort16*)(pInLine0+32);   //pInLine0 += 8*stride;
+		vldchk(pInLine1, vB1, vG1);   vBG1 = *(ushort16*)(pInLine1+32);   //pInLine1 += 8*stride;
+		vldchk(pInLine2, vG2, vR2);   vGR2 = *(ushort16*)(pInLine2+32);   //pInLine2 += 8*stride;
+		vldchk(pInLine3, vB3, vG3);   vBG3 = *(ushort16*)(pInLine3+32);   //pInLine3 += 8*stride;
+		// subtract blacklevel
+		vG0	= vsubsat(vG0, (unsigned short)64);
+		vR0	= vsubsat(vR0, (unsigned short)64);
+		vB1	= vsubsat(vB1, (unsigned short)64);
+		vG1	= vsubsat(vG1, (unsigned short)64);
 
-			vG2	= vsubsat(vG2, (unsigned short)64);
-			vR2	= vsubsat(vR2, (unsigned short)64);
-			vB3	= vsubsat(vB3, (unsigned short)64);
-			vG3	= vsubsat(vG3, (unsigned short)64);
+		vG2	= vsubsat(vG2, (unsigned short)64);
+		vR2	= vsubsat(vR2, (unsigned short)64);
+		vB3	= vsubsat(vB3, (unsigned short)64);
+		vG3	= vsubsat(vG3, (unsigned short)64);
+
+		vGR0	= vsubsat(vGR0, (unsigned short)64);
+		vBG1	= vsubsat(vBG1, (unsigned short)64);
+		vGR2	= vsubsat(vGR2, (unsigned short)64);
+		vBG3	= vsubsat(vBG3, (unsigned short)64);
+
+
+		vR0offset	= (ushort16)vperm(vR0,vGR0,vcfgAdjRed1);	
+		vR2offset_	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed2);
+
+		vB1offset	= (ushort16)vperm(vB1,vBG1,vcfgAdjBlu1);
+		vB3offset_	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu2);
+
+		vG2offset	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
+		vG2offset_	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
+
+
+		vG1offset	= (ushort16)vperm(vG1,vBG1,vcfgAdjRed1);
+		vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
+
+		vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed1);
+		vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu1);
+
+		vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
+
+		for ( j = 0 ; j < blockH/4; j++ )
+		{
+			vldchk(pInLine4, vG4, vR4);   vGR4 = *(ushort16*)(pInLine4+32);   pInLine4 += 4*stride;
+			vldchk(pInLine5, vB5, vG5);   vBG5 = *(ushort16*)(pInLine5+32);   pInLine5 += 4*stride;
+			vldchk(pInLine6, vG6, vR6);   vGR6 = *(ushort16*)(pInLine6+32);   pInLine6 += 4*stride;
+			vldchk(pInLine7, vB7, vG7);   vBG7 = *(ushort16*)(pInLine7+32);   pInLine7 += 4*stride;
 
 			vG4	= vsubsat(vG4, (unsigned short)64);
 			vR4	= vsubsat(vR4, (unsigned short)64);
@@ -413,11 +449,6 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			vB7	= vsubsat(vB7, (unsigned short)64);
 			vG7	= vsubsat(vG7, (unsigned short)64);
 
-			vGR0	= vsubsat(vGR0, (unsigned short)64);
-			vBG1	= vsubsat(vBG1, (unsigned short)64);
-			vGR2	= vsubsat(vGR2, (unsigned short)64);
-			vBG3	= vsubsat(vBG3, (unsigned short)64);
-
 			vGR4	= vsubsat(vGR4, (unsigned short)64);
 			vBG5	= vsubsat(vBG5, (unsigned short)64);
 			vGR6	= vsubsat(vGR6, (unsigned short)64);
@@ -427,19 +458,19 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			// -------------r-----------------
 			// abs(R0-R4),abs(R2 - R2+4)
 			// ----
-			vR0offset	= (ushort16)vperm(vR0,vGR0,vcfgAdjRed1);
+			//vR0offset	= (ushort16)vperm(vR0,vGR0,vcfgAdjRed1);
 			vR4offset	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed1);
-			vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed2);
+			//vR2offset_	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed2);
 #if CODE_SCATTER
 			v0			= vabssub(vR0offset, vR4offset);
-			v1			= vabssub(vR2, vR2offset);
+			v1			= vabssub(vR2, vR2offset_);
 			v2			= (ushort16)vadd(vR0offset, vR4offset);
-			v3			= (ushort16)vadd(vR2, vR2offset); 
+			v3			= (ushort16)vadd(vR2, vR2offset_); 
 			SecMask 	= vcmp(lt,v0,v1);
 			vRL0best	= vselect(v2,v3,SecMask);
 #else
-			SecMask 	= vcmp(lt,vabssub(vR0offset, vR4offset),vabssub(vR2, vR2offset));
-			vRL0best 	= vselect( (ushort16)vadd(vR0offset, vR4offset), (ushort16)vadd(vR2, vR2offset), SecMask); 
+			SecMask 	= vcmp(lt,vabssub(vR0offset, vR4offset),vabssub(vR2, vR2offset_));
+			vRL0best 	= vselect( (ushort16)vadd(vR0offset, vR4offset), (ushort16)vadd(vR2, vR2offset_), SecMask); 
 #endif
 
 			//PRINT_CEVA_VRF("vRL0best", vRL0best, stderr);
@@ -447,27 +478,27 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			// -------------b-----------------
 			// abs(B1-B5),abs(B3 - B3+4)
 			// ----
-			vB1offset	= (ushort16)vperm(vB1,vBG1,vcfgAdjBlu1);
+			//vB1offset	= (ushort16)vperm(vB1,vBG1,vcfgAdjBlu1);
 			vB5offset	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
-			vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu2);
+			//vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu2);
 #if CODE_SCATTER
 			v0			= vabssub(vB1offset, vB5offset);
-			v1			= vabssub(vB3, vB3offset);
+			v1			= vabssub(vB3, vB3offset_);
 			v2			= (ushort16)vadd(vB1offset, vB5offset);
-			v3			= (ushort16)vadd(vB3, vB3offset); 
+			v3			= (ushort16)vadd(vB3, vB3offset_); 
 			SecMask 	= vcmp(lt,v0,v1);
 			vBL0best	= vselect(v2,v3,SecMask);
 #else
 			
-			SecMask 	= vcmp(lt,vabssub(vB1offset, vB5offset),vabssub(vB3, vB3offset));
-			vBL0best 	= vselect( (ushort16)vadd(vB1offset, vB5offset), (ushort16)vadd(vB3, vB3offset), SecMask); 
+			SecMask 	= vcmp(lt,vabssub(vB1offset, vB5offset),vabssub(vB3, vB3offset_));
+			vBL0best 	= vselect( (ushort16)vadd(vB1offset, vB5offset), (ushort16)vadd(vB3, vB3offset_), SecMask); 
 #endif
 			//PRINT_CEVA_VRF("vBL0best", vBL0best, stderr);
 			// -------------G-----------------
 			// abs(G1-G3),abs(G2 - G4)
 			//  G1  G3 
-			vG1offset	= (ushort16)vperm(vG1,vBG1,vcfgAdjRed1);
-			vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
+			//vG1offset	= (ushort16)vperm(vG1,vBG1,vcfgAdjRed1);
+			//vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
 #if CODE_SCATTER
 			v0			= vabssub(vG1, vG3offset);
 			v1			= vabssub(vG3, vG1offset);
@@ -482,9 +513,9 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			//PRINT_CEVA_VRF("vG0L0best", vG0L0best, stderr);
 
 			//  G2  G4  
-			vG2offset	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
+			//vG2offset	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
 			vG4offset	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre1);
-			vG2offset_	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
+			//vG2offset_	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
 			vG4offset_	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre2);
 #if CODE_SCATTER
 			v0			= vabssub(vG2offset, vG4offset_);
@@ -502,38 +533,38 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			// -------------r-----------------
 			// abs(R2-R6),abs(R4 - R4+4)
 			// ----
-			vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed1);
+			//vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed1);
 			vR6offset	= (ushort16)vperm(vR6,vGR6,vcfgAdjRed1);
-			vR4offset	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed2);
+			vR4offset_	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed2);
 #if CODE_SCATTER
 			v0			= vabssub(vR2offset, vR6offset);
-			v1			= vabssub(vR4, vR4offset);
+			v1			= vabssub(vR4, vR4offset_);
 			v2			= (ushort16)vadd(vR2offset, vR6offset);
-			v3			= (ushort16)vadd(vR4, vR4offset); 
+			v3			= (ushort16)vadd(vR4, vR4offset_); 
 			SecMask 	= vcmp(lt,v0,v1);
 			vRL1best	= vselect(v2,v3,SecMask);
 #else
-			SecMask 	= vcmp(lt,vabssub(vR2offset, vR6offset),vabssub(vR4, vR4offset));
-			vRL1best 	= vselect( (ushort16)vadd(vR2offset, vR6offset), (ushort16)vadd(vR4, vR4offset), SecMask); 
+			SecMask 	= vcmp(lt,vabssub(vR2offset, vR6offset),vabssub(vR4, vR4offset_));
+			vRL1best 	= vselect( (ushort16)vadd(vR2offset, vR6offset), (ushort16)vadd(vR4, vR4offset_), SecMask); 
 #endif
 			//PRINT_CEVA_VRF("vRL1best", vRL1best, stderr);
 
 			// -------------b-----------------
 			// abs(B3-B7),abs(B5 - B5+4)
 			// ----
-			vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu1);
+			//vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu1);
 			vB7offset	= (ushort16)vperm(vB7,vBG7,vcfgAdjBlu1);
-			vB5offset	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu2);
+			vB5offset_	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu2);
 #if CODE_SCATTER
 			v0			= vabssub(vB3offset, vB7offset);
-			v1			= vabssub(vB5, vB5offset);
+			v1			= vabssub(vB5, vB5offset_);
 			v2			= (ushort16)vadd(vB3offset, vB7offset);
-			v3			= (ushort16)vadd(vB5, vB5offset); 
+			v3			= (ushort16)vadd(vB5, vB5offset_); 
 			SecMask 	= vcmp(lt,v0,v1);
 			vBL1best	= vselect(v2,v3,SecMask);
 #else
-			SecMask 	= vcmp(lt,vabssub(vB3offset, vB7offset),vabssub(vB5, vB5offset));
-			vBL1best 	= vselect( (ushort16)vadd(vB3offset, vB7offset), (ushort16)vadd(vB5, vB5offset), SecMask); 
+			SecMask 	= vcmp(lt,vabssub(vB3offset, vB7offset),vabssub(vB5, vB5offset_));
+			vBL1best 	= vselect( (ushort16)vadd(vB3offset, vB7offset), (ushort16)vadd(vB5, vB5offset_), SecMask); 
 #endif
 			//PRINT_CEVA_VRF("vBL1best", vBL1best, stderr);
 
@@ -579,7 +610,7 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			// 4 Line x 32 for long and short.
 			// ------------------------------------------
 			// line 0 GRBG
-			vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
+			//vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
 			vRL0best	= (ushort16)vshiftr(vRL0best, (uchar)1);// times// interpoaltion		
 			vRL0Long		= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
 			//PRINT_CEVA_VRF("vRL0Long", vRL0Long, stderr);
@@ -670,6 +701,49 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			vpst(vG1L1Short, pL1G1_s,  vOffsetGap2);
 #endif
 
+			pL0G0	  += 4*HDR_BLOCK_W;	                        
+			pL0Red 	  += 4*HDR_BLOCK_W;	                        
+			pL0Blu	  += 4*HDR_BLOCK_W;	                      
+			pL0G1	  += 4*HDR_BLOCK_W;	                   
+			pL1G0	  += 4*HDR_BLOCK_W;	                    
+			pL1Red 	  += 4*HDR_BLOCK_W;	                       
+			pL1Blu 	  += 4*HDR_BLOCK_W;	                       
+			pL1G1	  += 4*HDR_BLOCK_W;	                   
+			                                               
+			pL0G0_s	  += 4*HDR_BLOCK_W;	
+			pL0Red_s  += 4*HDR_BLOCK_W;	
+			pL0Blu_s  += 4*HDR_BLOCK_W;	
+			pL0G1_s	  += 4*HDR_BLOCK_W;	
+			pL1G0_s	  += 4*HDR_BLOCK_W;	
+			pL1Red_s  += 4*HDR_BLOCK_W;	
+			pL1Blu_s  += 4*HDR_BLOCK_W;	
+			pL1G1_s	  += 4*HDR_BLOCK_W;	
+
+
+			// move the 4 line data up.
+
+
+			vR0offset	= vR4offset;		
+			vR2offset_	= (ushort16)vperm(vR6,vGR6,vcfgAdjRed2);//line 6 for Red hori data
+
+			vB1offset	= vB5offset;
+			vB3offset_	= (ushort16)vperm(vB7,vBG7,vcfgAdjBlu2);//line 6 for blue hori data
+
+			vG2offset	= vG6offset;//(ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
+			vG2offset_	= vG6offset_;//(ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
+
+			vG1offset	= (ushort16)vperm(vG5,vBG5,vcfgAdjRed1);
+			vG3offset	= (ushort16)vperm(vG7,vBG7,vcfgAdjRed1);
+
+			vR2offset	= vR6offset;//(ushort16)vperm(vR6,vGR6,vcfgAdjRed1);
+			vB3offset	= vB7offset;//(ushort16)vperm(vB7,vBG7,vcfgAdjBlu1);
+
+			vR2packed	= (ushort16)vperm(vR6,vGR6,vcfgAdjRedPack); // orignal
+			vR2			= vR6;
+			vB3			= vB7;
+			vG1			= vG5;
+			vG3			= vG7;
+
 #if 0
 			// ------------------------------------------
 			// use difference to LUT
@@ -729,6 +803,37 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 
 #endif	
 		}
+		// snd col
+		pInLine0 = p_u16Src + 32 ;						// + 3,Load R 
+		pInLine1 = p_u16Src + 32  + stride 		;	// + 1 load G & B
+		pInLine2 = p_u16Src + 32  + 2*stride 	;	// + 1 LOAD R & G
+		pInLine3 = p_u16Src + 32  + 3*stride	;	//     load B & G
+		
+		pInLine4 = p_u16Src + 32  + 4*stride	;	// + 2 LOAD G & R
+		pInLine5 = p_u16Src + 32  + 5*stride	;	// + 2 LOAD B 
+		pInLine6 = p_u16Src + 32  + 6*stride	;	// + 2 LOAD B 
+		pInLine7 = p_u16Src + 32  + 7*stride	;	// + 2 LOAD B 
+
+
+
+		pL0G0	= buff + 32									;                              
+		pL0Red 	= buff + 32	+1									;                              
+		pL0Blu	= buff + 32	   + HDR_BLOCK_W 	;                              
+		pL0G1	= buff + 32	+1 + HDR_BLOCK_W 	;                              
+		pL1G0	= buff + 32	   + 2*HDR_BLOCK_W ;                              
+		pL1Red 	= buff+ 32	+1 + 2*HDR_BLOCK_W ;                              
+		pL1Blu 	= buff+ 32	   + 3*HDR_BLOCK_W ;                              
+		pL1G1	= buff+ 32	+1 + 3*HDR_BLOCK_W ;                              
+		                                                               
+		pL0G0_s	 = buff+ 32	 			 	   + HDR_BLOCK_H*HDR_BLOCK_W;   
+		pL0Red_s = buff+ 32	+1			 	   + HDR_BLOCK_H*HDR_BLOCK_W;   
+		pL0Blu_s = buff+ 32	   + HDR_BLOCK_W   + HDR_BLOCK_H*HDR_BLOCK_W;   
+		pL0G1_s	 = buff+ 32	+1 + HDR_BLOCK_W   + HDR_BLOCK_H*HDR_BLOCK_W;   
+		pL1G0_s	 = buff+ 32	   + 2*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
+		pL1Red_s = buff+ 32	+1 + 2*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
+		pL1Blu_s = buff+ 32	   + 3*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
+		pL1G1_s	 = buff+ 32	+1 + 3*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
+
 	}
 #ifdef __XM4__
 	PROFILER_END();

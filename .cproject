@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+	<storageModule moduleId="org.eclipse.cdt.core.settings">
+		<cconfiguration id="com.ceva.toolchain.xm4.exe.configuration.debug.595393154">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.ceva.toolchain.xm4.exe.configuration.debug.595393154" moduleId="org.eclipse.cdt.core.settings" name="Debug">
+				<externalSettings/>
+				<extensions>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.MakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.ceva.toolchain.core.errorparser.bintools" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactExtension="a" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="Debug Configuration" id="com.ceva.toolchain.xm4.exe.configuration.debug.595393154" name="Debug" parent="com.ceva.toolchain.xm4.exe.configuration.debug">
+					<folderInfo id="com.ceva.toolchain.xm4.exe.configuration.debug.595393154." name="/" resourcePath="">
+						<toolChain id="com.ceva.toolchain.xm4.exe.debug.416519312" name="CEVA-XM4 Toolchain" superClass="com.ceva.toolchain.xm4.exe.debug">
+							<targetPlatform id="com.ceva.toolchain.xm4.target.162812528" name="CEVA-XM4 Platform" osList="other" superClass="com.ceva.toolchain.xm4.target"/>
+							<builder buildPath="${workspace_loc:/imx362hdr}/Debug" id="com.ceva.toolchain.xm4.builder.51410495" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CEVA-XM4 Builder" superClass="com.ceva.toolchain.xm4.builder"/>
+							<tool id="com.ceva.toolchain.xm4.exe.compiler.c.debug.97790631" name="CEVA-XM4 C Compiler" superClass="com.ceva.toolchain.xm4.exe.compiler.c.debug"/>
+							<tool id="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521" name="CEVA-XM4 C/C++ Compiler" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.debug">
+								<option id="xm4.compiler.general.-I.517876920" name="Include directories (-I)" superClass="xm4.compiler.general.-I" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/data}&quot;"/>
+								</option>
+								<option id="xm4.compiler.preprocessor.definitions.-D.190580292" name="Defined symbols (-D)" superClass="xm4.compiler.preprocessor.definitions.-D" valueType="definedSymbols">
+									<listOptionValue builtIn="false" value="__XM4__"/>
+								</option>
+								<option id="xm4.compiler.general.-save-temps.1998349403" name="Save all temporary files (-save-temps)" superClass="xm4.compiler.general.-save-temps" value="true" valueType="boolean"/>
+								<inputType id="com.ceva.toolchain.xm4.compiler.c.input.945337434" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
+								<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.810025640" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
+							</tool>
+							<tool id="com.ceva.toolchain.xm4.exe.assembler.debug.32836018" name="CEVA-XM4 Assembler" superClass="com.ceva.toolchain.xm4.exe.assembler.debug"/>
+							<tool id="com.ceva.toolchain.xm4.exe.linker.debug.434899062" name="CEVA-XM4 Linker" superClass="com.ceva.toolchain.xm4.exe.linker.debug">
+								<option id="xm4.linker.includes.include_directories.674471024" name="Search path (-i)" superClass="xm4.linker.includes.include_directories" valueType="libPaths">
+									<listOptionValue builtIn="false" value="&quot;${XM4TOOLS}/libs/xm4&quot;"/>
+								</option>
+								<option id="xm4.linker.libraries.libraries.683470830" name="Libraries" superClass="xm4.linker.libraries.libraries" valueType="libs">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/profiler_lib/Simulation/profiler_lib.lib}&quot;"/>
+									<listOptionValue builtIn="false" value="complexlib.lib"/>
+									<listOptionValue builtIn="false" value="libcc.lib"/>
+									<listOptionValue builtIn="false" value="libc.lib"/>
+									<listOptionValue builtIn="false" value="libcio.lib"/>
+									<listOptionValue builtIn="false" value="xm4lib.lib"/>
+								</option>
+								<option id="xm4.linker.listing_file.-noLst.456675853" name="Don't generate listing file (-noLst)" superClass="xm4.linker.listing_file.-noLst" value="false" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-G.1728534543" name="Print global symbols (-G)" superClass="xm4.linker.listing_file.-G" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-s.1294572366" name="Print symbol table (-s)" superClass="xm4.linker.listing_file.-s" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-m.1206874947" name="Print section map (-m)" superClass="xm4.linker.listing_file.-m" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-r.705990861" name="Print section map with relocation entries (-r)" superClass="xm4.linker.listing_file.-r" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-libRefInfo.1688138405" name="Print reference information of libraries symbols (-libRefInfo)" superClass="xm4.linker.listing_file.-libRefInfo" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-unmentionedSections.1019297244" name="Print list of unmapped sections (-unmentionedSections)" superClass="xm4.linker.listing_file.-unmentionedSections" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-funcRef.470139302" name="Print functions reference table (-funcRef)" superClass="xm4.linker.listing_file.-funcRef" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-unrefFuncs.1299369113" name="Print list of unreferenced functions (-unrefFuncs)" superClass="xm4.linker.listing_file.-unrefFuncs" value="true" valueType="boolean"/>
+							</tool>
+							<tool id="com.ceva.toolchain.xm4.libmanager.169224741" name="CEVA-XM4 Library Manager" superClass="com.ceva.toolchain.xm4.libmanager"/>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry excluding="src/wdr_weight.cpp|src/wdr_simu_cevaxm4.cpp|src/test_wdr.cpp|src/rk_register.cpp|src/rk_mfnr.cpp|src/rk_dma.cpp|src/rk_denoiser.cpp|src/rk_bayerwdr.cpp|table|si|data|compat|cmake|build|matlab_ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings">
+				<externalSettings containerId="com.ceva.toolchain.xm4.externalSettingsProvider" factoryId="org.eclipse.cdt.core.extension.container.factory">
+					<externalSetting>
+						<entry flags="NONE" kind="libraryPath" name="${XM4TOOLS}/libs/xm4"/>
+						<entry flags="NONE" kind="libraryFile" name="libcc.lib" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="NONE" kind="libraryFile" name="libc.lib" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="NONE" kind="libraryFile" name="complexlib.lib" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="NONE" kind="libraryFile" name="libcio.lib" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="NONE" kind="libraryFile" name="xm4lib.lib" srcPrefixMapping="" srcRootPath=""/>
+					</externalSetting>
+				</externalSettings>
+			</storageModule>
+		</cconfiguration>
+		<cconfiguration id="com.ceva.toolchain.xm4.exe.configuration.release.1799060453">
+			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="com.ceva.toolchain.xm4.exe.configuration.release.1799060453" moduleId="org.eclipse.cdt.core.settings" name="Release">
+				<externalSettings/>
+				<extensions>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.MakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="com.ceva.toolchain.core.errorparser.bintools" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+				</extensions>
+			</storageModule>
+			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+				<configuration artifactExtension="a" artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" cleanCommand="rm -rf" description="Release Configuration" id="com.ceva.toolchain.xm4.exe.configuration.release.1799060453" name="Release" parent="com.ceva.toolchain.xm4.exe.configuration.release">
+					<folderInfo id="com.ceva.toolchain.xm4.exe.configuration.release.1799060453." name="/" resourcePath="">
+						<toolChain id="com.ceva.toolchain.xm4.exe.release.1024650962" name="CEVA-XM4 Toolchain" superClass="com.ceva.toolchain.xm4.exe.release">
+							<targetPlatform id="com.ceva.toolchain.xm4.target.1853731198" name="CEVA-XM4 Platform" osList="other" superClass="com.ceva.toolchain.xm4.target"/>
+							<builder buildPath="${workspace_loc:/imx362hdr}/Release" id="com.ceva.toolchain.xm4.builder.49669612" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CEVA-XM4 Builder" superClass="com.ceva.toolchain.xm4.builder"/>
+							<tool id="com.ceva.toolchain.xm4.compiler.c.840295167" name="CEVA-XM4 C Compiler" superClass="com.ceva.toolchain.xm4.compiler.c"/>
+							<tool id="com.ceva.toolchain.xm4.compiler.cpp.2100424174" name="CEVA-XM4 C/C++ Compiler" superClass="com.ceva.toolchain.xm4.compiler.cpp">
+								<inputType id="com.ceva.toolchain.xm4.compiler.c.input.126570177" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
+								<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.1573706607" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
+							</tool>
+							<tool id="com.ceva.toolchain.xm4.assembler.832430061" name="CEVA-XM4 Assembler" superClass="com.ceva.toolchain.xm4.assembler"/>
+							<tool id="com.ceva.toolchain.xm4.linker.138111712" name="CEVA-XM4 Linker" superClass="com.ceva.toolchain.xm4.linker">
+								<option id="xm4.linker.includes.include_directories.287705689" name="Search path (-i)" superClass="xm4.linker.includes.include_directories" valueType="libPaths">
+									<listOptionValue builtIn="false" value="&quot;${XM4TOOLS}/libs/xm4&quot;"/>
+								</option>
+								<option id="xm4.linker.libraries.libraries.463579978" name="Libraries" superClass="xm4.linker.libraries.libraries" valueType="libs">
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="complexlib.lib"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libcc.lib"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libc.lib"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="libcio.lib"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="xm4lib.lib"/>
+								</option>
+							</tool>
+							<tool id="com.ceva.toolchain.xm4.libmanager.97310601" name="CEVA-XM4 Library Manager" superClass="com.ceva.toolchain.xm4.libmanager"/>
+						</toolChain>
+					</folderInfo>
+					<sourceEntries>
+						<entry excluding="src/wdr_weight.cpp|src/wdr_simu_cevaxm4.cpp|src/test_wdr.cpp|src/rk_register.cpp|src/rk_mfnr.cpp|src/rk_dma.cpp|src/rk_denoiser.cpp|src/rk_bayerwdr.cpp|table|si|data|compat|cmake|build|matlab_ext" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+					</sourceEntries>
+				</configuration>
+			</storageModule>
+			<storageModule moduleId="org.eclipse.cdt.core.externalSettings">
+				<externalSettings containerId="com.ceva.toolchain.xm4.externalSettingsProvider" factoryId="org.eclipse.cdt.core.extension.container.factory">
+					<externalSetting>
+						<entry flags="NONE" kind="libraryPath" name="${XM4TOOLS}/libs/xm4"/>
+						<entry flags="NONE" kind="libraryFile" name="libcc.lib" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="NONE" kind="libraryFile" name="libc.lib" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="NONE" kind="libraryFile" name="complexlib.lib" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="NONE" kind="libraryFile" name="libcio.lib" srcPrefixMapping="" srcRootPath=""/>
+						<entry flags="NONE" kind="libraryFile" name="xm4lib.lib" srcPrefixMapping="" srcRootPath=""/>
+					</externalSetting>
+				</externalSettings>
+			</storageModule>
+		</cconfiguration>
+	</storageModule>
+	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
+		<project id="imx362hdr.com.ceva.toolchain.xm4.exe.766090105" name="Executable" projectType="com.ceva.toolchain.xm4.exe"/>
+	</storageModule>
+	<storageModule moduleId="scannerConfiguration">
+		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+	</storageModule>
+	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="org.eclipse.cdt.core.language.mapping">
+		<project-mappings>
+			<content-type-mapping configuration="" content-type="org.eclipse.cdt.core.cHeader" language="com.ceva.toolchain.xm4.c"/>
+			<content-type-mapping configuration="" content-type="org.eclipse.cdt.core.cSource" language="com.ceva.toolchain.xm4.c"/>
+			<content-type-mapping configuration="" content-type="org.eclipse.cdt.core.cxxHeader" language="com.ceva.toolchain.xm4.cxx"/>
+			<content-type-mapping configuration="" content-type="org.eclipse.cdt.core.cxxSource" language="com.ceva.toolchain.xm4.cxx"/>
+		</project-mappings>
+	</storageModule>
+	<storageModule moduleId="com.ceva.toolchain.core.sdtflags" revision="15.0.0"/>
+	<storageModule length="5000" moduleId="com.ceva.toolchain.core.cmdlimit"/>
+	<storageModule moduleId="refreshScope"/>
+	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
+</cproject>
