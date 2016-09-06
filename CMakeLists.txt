@@ -243,6 +243,8 @@ if(ENABLE_APP)
 	file(GLOB preIspFiles   src/main.cpp
 							src/zigZagBayerInterpo.cpp
 							src/hdr_process.cpp
+							src/DebugFiles.cpp
+							include/DebugFiles.h
 							include/XM4_defines.h
 							include/rk_bayerwdr.h						
 							include/rk_global.h	

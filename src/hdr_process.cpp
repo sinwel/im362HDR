@@ -1,8 +1,14 @@
+
+
+
 #include <string.h>
-#include "rk_typedef.h"              // Type definition
+#include "DebugFiles.h"
 #include "rk_bayerwdr.h"
 
+static int x_pos ;
+static int y_pos ;
 
+static int countFiles = 0;
 // define the block parameters.
 
 RK_U16		p_u16Src[8*52] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") =
@@ -144,13 +150,29 @@ void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, bool bFristCTUli
 	
 	// bFristCTUline = true, store out only HDR_BLOCK_H - 2 valid.
 	
-	zigzagDebayer(	bFristCTUline ? pRawInBuff + 2*HDR_SRC_STRIDE : pRawInBuff,
+	zigzagDebayer(	pRawInBuff,
 					p_u16Tab,
 					validW,
 					validH,
 					HDR_SRC_STRIDE,
 					1024-64,
 					pL_S_ImageBuff[buffIdx]); 	
+
+#if DEBUG_OUTPUT_FILES
+    char name_str[512];
+	if  ( countFiles < 128)
+	{
+#if __XM4__
+		sprintf(name_str, "%s_%04d-%04d.dat", "long_short_image_ceva", y_pos,x_pos);
+#else
+		sprintf(name_str, "%s_%04d-%04d.dat", "long_short_image", y_pos,x_pos);
+#endif
+		writeFile(pL_S_ImageBuff[buffIdx], 2*HDR_BLOCK_H*HDR_BLOCK_W, HDR_BLOCK_W, name_str);
+		countFiles++;
+	}
+#endif
+
+	
 /*
 	residualLUT(pL_S_ImageBuff[(buffIdx+1)&1],			//<<! [in] long time image.
 				pL_S_ImageBuff[(buffIdx+1)&1] + 4*32, 	//<<! [in] short time image.
@@ -233,12 +255,12 @@ void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned shor
 	
 	for (int y = 0; y < rows; y += HDR_BLOCK_H)
 	{
-
+		y_pos = y/HDR_BLOCK_H;
 		for (int x = 0; x < cols; x += HDR_BLOCK_W)
 		{
-
+			x_pos = x/HDR_BLOCK_W;
 			// Fill Block32x64 from TemporalDenoise
-		    CopyBlockData(src+x, 		  g_pHdrRawBlockBuf[buffIdx]+4*nHdrBufWid+2, min_(HDR_BLOCK_W,W-x), min_(HDR_BLOCK_H,H-y), W*2, nHdrBufWid*2);
+		    CopyBlockData(src+x+y*W, 		  g_pHdrRawBlockBuf[buffIdx]+4*nHdrBufWid+2, min_(HDR_BLOCK_W,W-x), min_(HDR_BLOCK_H,H-y), W*2, nHdrBufWid*2);
 
 		    // Fill 4-TopExternalRows from RowBuf
 		    CopyBlockData(g_pHdrRawRowBuf+x,g_pHdrRawBlockBuf[buffIdx],                nHdrBufWid, 4,    4096*2, nHdrBufWid*2);
@@ -271,7 +293,8 @@ void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned shor
 				              nHdrBufWid, 4, nHdrBufWid*2, 4096*2);
 
 				hdr_block_process(g_pHdrRawBlockBuf[buffIdx], g_pHdrOutBuf[buffIdx], y < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x), min_(HDR_BLOCK_H,H-y));
-		    }
+				
+			}
 
 			
 		}

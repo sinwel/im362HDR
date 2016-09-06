@@ -24,35 +24,12 @@
 #include "rk_typedef.h"
 #include "rk_bayerwdr.h"
 #include "profiler.h"
-#if WIN32
-#include <stdlib.h>
-void writeFile(RK_U16 *data, int Num, char* FileName)
-{
-	FILE* fp = fopen(FileName,"w");
-	for ( int i = 0 ; i < Num; i++ )
-	{
-		fprintf(fp,"%6d,", *data++);
-		if ( (i+1)%256 == 0 )
-		{
-			fprintf(fp,"\n");
-		}
-	}
 
-	fclose(fp);
-}
-
-void writeBinFile(RK_U16 *data, int Num, char* FileName)
-{
-	FILE* fp = fopen(FileName,"wb");
-	fwrite(data,sizeof(RK_U16),Num,fp);
-	fclose(fp);
-}
-#endif
 
 #define CODE_SCATTER 		1
 
-#define R_B_LONG_PATTERN	0XAAAA
-#define R_B_SHORT_PATTERN	0X5555 
+#define R_B_LONG_PATTERN	0X5555
+#define R_B_SHORT_PATTERN	0XAAAA 
 #define G_LONG_PATTERN		0XFFFF
 #define G_SHORT_PATTERN		0X0
 

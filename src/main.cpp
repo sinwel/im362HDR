@@ -4,10 +4,11 @@
 #include "rk_typedef.h"              // Type definition
 #if __XM4__
 #include "XM4_defines.h".
-unsigned short src[2*64*32] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0") = 
+unsigned short src[2016*1504] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA"); 
+/*= 
 {
 	#include "../data/128x32.dat"
-};
+};*/
 unsigned short dst[2*64*32] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0");
 
 #endif
@@ -53,14 +54,11 @@ void main(int argc, char **argv)
 	const char		ofname[] = "data/raw_2016x1504_Out.raw";
 	fp = fopen(ifname, "rb+");
 	
-	//fread(src, 2, 2*64*32, fp);
+	fread(src, 2, W*H, fp);
 	fclose(fp);
 
-	hdrprocess_sony_raw(src, dst, 0, 2*64, 32, 4, 0);
+	hdrprocess_sony_raw(src, dst, 0,  W, H, 4, 0);
 
-	fp = fopen(ofname, "wb+");
-	fwrite(dst, 2, 2*64*32, fp);
-	fclose(fp);
 #endif
 
 }
