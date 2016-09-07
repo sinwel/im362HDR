@@ -182,13 +182,14 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 	RK_U8* 	p_tab  = p_u8Weight;
 	RK_U16* p_imgL = p_u16ImageL_S;
 	RK_U16* p_imgS = p_u16ImageL_S + 32*64;
+	RK_U16* pHDRout  = p_u16Dst;
 	short offset[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15};
 	short16 voffset = *(short16*)offset;
 	
 	unsigned char cfg_fir[32] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
-							16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
+							     32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47};
 	unsigned char cfg_snd[32] = {16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
-							 32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47};
+							 	 48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63};
 	uchar32 vcfg_fir = *(uchar32*)cfg_fir;
 	uchar32 vcfg_snd = *(uchar32*)cfg_snd;
 	uchar32 v0a, v0b, v0c, vdummy;
@@ -225,20 +226,23 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 		//vldchk(p_u16ImageL_S, imgL, imgS);  
 		imgL = vpld(p_imgL,voffset);  
 		imgS = vpld(p_imgS,voffset);  
-		p_imgL += s32SrcStep;
-		p_imgS += s32SrcStep;
+		p_imgL += s32DstStep;
+		p_imgS += s32DstStep;
 		
 		for(row = 0; row < u32Rows; row++) 
 		{
-			v2a = vmax(v2a, v2b, v2c);
-			u1  = vmax(v0a, v1a, v2a);
+			if (0 == (col&31))
+			{
+				v2a = vmax(v2a, v2b, v2c);
+				u1  = vmax(v0a, v1a, v2a);
 
-			//D_adj = ordfilt2(D_scale, 9, ones(3,3));	
-			//out = (l_ref_image.*(normlizeValue-D_adj)+s_ref_image.*D_adj)/normlizeValue;
-			oneSubu1 		= (uchar32)vsub((unsigned char)255,u1);
-			splitBiEven		= (uchar32)vperm(oneSubu1,u1,vcfg_fir); // low for long, high for short.
-			splitBiOdd		= (uchar32)vperm(oneSubu1,u1,vcfg_snd); // low for long, high for short.
-			hdrOut 			= (ushort16)vmac3(splitsrc, psl, imgL, imgS, 0 == (col&31) ? splitBiEven : splitBiOdd, (uint16) 0, (unsigned char)8); 
+				//D_adj = ordfilt2(D_scale, 9, ones(3,3));	
+				//out = (l_ref_image.*(normlizeValue-D_adj)+s_ref_image.*D_adj)/normlizeValue;
+				oneSubu1 		= (uchar32)vsub((unsigned char)255,u1);
+				splitBiEven		= (uchar32)vperm(oneSubu1,u1,vcfg_fir); // low for long, high for short.
+				splitBiOdd		= (uchar32)vperm(oneSubu1,u1,vcfg_snd); // low for long, high for short.
+			}
+			hdrOut 			= (ushort16)vmac3(splitsrc, psl, imgL, imgS, 0 == (col&31) ? splitBiEven : splitBiOdd, (uint16) 128, (unsigned char)8); 
 
 			v0a = v1a;
 			v0b = v1b;
@@ -253,24 +257,24 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 			//vldchk(p_u16ImageL_S, imgL, imgS);  
 			imgL = vpld(p_imgL,voffset);  
 			imgS = vpld(p_imgS,voffset);  
-			p_imgL += s32SrcStep;
-			p_imgS += s32SrcStep;
+			p_imgL += s32DstStep;
+			p_imgS += s32DstStep;
 			
 		#if 1
 			// store 32 result pixels
-			vst(hdrOut, (ushort16*)p_u16Dst, vprMask);
+			vst(hdrOut, (ushort16*)pHDRout, vprMask);
 		#else
 			// WDR, read prev light to bilinear the out.
 		
 		#endif
-			p_u16Dst+=s32DstStep;
+			pHDRout+=s32DstStep;
 		}
-		if (0 == (col&31))
+		if (0 == ((col+16)&31))
 			p_tab  = p_u8Weight + col*2;		 
 		
-		p_imgL = p_u16ImageL_S 	+ col;			 
-		p_imgS = p_u16ImageL_S 	+ 32*64 + col;	 
-
+		p_imgL = p_u16ImageL_S 	+ col + 16;			 
+		p_imgS = p_u16ImageL_S 	+ 32*64 + col + 16;;	 
+		pHDRout = p_u16Dst +  col + 16;		
 	}
 	//GET_FUNCTION_NAME(ceva::g_p_function_name);
 }
@@ -337,13 +341,13 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	unsigned short* pL1G1_s	 = buff+1 + 3*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
 
 	unsigned char* pScaleL0G0	= scale 									;                              
-	unsigned char* pScaleL0Red = scale+1									;                              
-	unsigned char* pScaleL0Blu	= scale	  + HDR_BLOCK_W 	;                              
-	unsigned char* pScaleL0G1	= scale+1 + HDR_BLOCK_W 	;                              
-	unsigned char* pScaleL1G0	= scale   + 2*HDR_BLOCK_W ;                              
-	unsigned char* pScaleL1Red = scale+1 + 2*HDR_BLOCK_W ;                              
-	unsigned char* pScaleL1Blu = scale   + 3*HDR_BLOCK_W ;                              
-	unsigned char* pScaleL1G1	= scale+1 + 3*HDR_BLOCK_W ;                              
+	unsigned char* pScaleL0Red  = scale+1									;                              
+	unsigned char* pScaleL0Blu	= scale	  + HDR_FILTER_W 	;                              
+	unsigned char* pScaleL0G1	= scale+1 + HDR_FILTER_W 	;                              
+	unsigned char* pScaleL1G0	= scale   + 2*HDR_FILTER_W ;                              
+	unsigned char* pScaleL1Red  = scale+1 + 2*HDR_FILTER_W ;                              
+	unsigned char* pScaleL1Blu  = scale   + 3*HDR_FILTER_W ;                              
+	unsigned char* pScaleL1G1	= scale+1 + 3*HDR_FILTER_W ;                              
       
 
 	unsigned short  OffsetGap2[16] 		= {	0,	2, 4, 6, 8,10,12,14,
@@ -755,7 +759,7 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			vpst(vG1L1Short, pL1G1_s,  vOffsetGap2);
 		#endif
 
-#if 0//CONNECT_LUT
+#if CONNECT_LUT
 					
 			// ------------------------------------------
 			// use difference to LUT
@@ -841,7 +845,17 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			pL1Blu_s  += 4*HDR_BLOCK_W;	
 			pL1G1_s	  += 4*HDR_BLOCK_W;	
 
+			pScaleL0G0   += 4*HDR_FILTER_W;	
+			pScaleL0Red  += 4*HDR_FILTER_W;	
+			pScaleL0Blu  += 4*HDR_FILTER_W;	
+			pScaleL0G1   += 4*HDR_FILTER_W;	
+			                                
+			pScaleL1G0   += 4*HDR_FILTER_W;	
+			pScaleL1Red  += 4*HDR_FILTER_W;	
+			pScaleL1Blu  += 4*HDR_FILTER_W;	
+			pScaleL1G1   += 4*HDR_FILTER_W;	
 
+			
 			// move the 4 line data up.
 
 
@@ -897,6 +911,17 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 		pL1Red_s = buff+ 32	+1 + 2*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
 		pL1Blu_s = buff+ 32	   + 3*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
 		pL1G1_s	 = buff+ 32	+1 + 3*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
+
+
+		pScaleL0G0	= scale 	+ 32 				;     
+		pScaleL0Red = scale+1	+ 32 				;   
+		pScaleL0Blu	= scale	  	+ 32 + HDR_FILTER_W ;   
+		pScaleL0G1	= scale+1 	+ 32 + HDR_FILTER_W ;   
+		pScaleL1G0	= scale   	+ 32 + 2*HDR_FILTER_W ;   
+		pScaleL1Red = scale+1	+ 32 + 2*HDR_FILTER_W ;  
+		pScaleL1Blu = scale  	+ 32 + 3*HDR_FILTER_W ;  
+		pScaleL1G1	= scale+1	+ 32 + 3*HDR_FILTER_W ;   
+		
 
 	}
 #ifdef __XM4__

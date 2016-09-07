@@ -21,7 +21,7 @@ RK_U8		p_u16Tab[961]  PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") =
 };
 
 RK_U16		pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
-RK_U8 		pWeightBuff[HDR_BLOCK_H*HDR_BLOCK_W] 			PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
+RK_U8 		pWeightBuff[(HDR_BLOCK_H+2)*(HDR_BLOCK_W+2)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
 RK_U16		pHDRout[HDR_BLOCK_H*HDR_BLOCK_W] 				PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
 
 RK_U16 		g_pHdrRawBlockBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	= {0};
@@ -158,11 +158,11 @@ void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, bool bFristCTUli
 					HDR_SRC_STRIDE,
 					1024-64,
 					pL_S_ImageBuff[buffIdx],
-					pWeightBuff); 	
+					pWeightBuff+1+HDR_FILTER_W); // need be clear to zeros.	
 
 #if DEBUG_OUTPUT_FILES
     char name_image[512], name_weight[512];;
-	if  ( countFiles < 128 && x_pos < 4 )
+	if  ( y_pos < 2  )
 	{
 #if __XM4__
 		sprintf(name_image, "%s_%04d-%04d.dat", "LongShortImg_ceva", y_pos,x_pos);
@@ -171,35 +171,36 @@ void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, bool bFristCTUli
 		sprintf(name_image, "%s_%04d-%04d.dat", "LongShortImg_vs", y_pos,x_pos);
 		sprintf(name_weight, "%s_%04d-%04d.dat", "weightvs", y_pos,x_pos);
 #endif
-		writeFile(pL_S_ImageBuff[buffIdx], 2*HDR_BLOCK_H*HDR_BLOCK_W, HDR_BLOCK_W, name_image);
-		writeFile(pWeightBuff,  HDR_BLOCK_H*HDR_BLOCK_W, HDR_BLOCK_W, name_weight);
-		countFiles++;
+		writeFile(pL_S_ImageBuff[buffIdx], 	HDR_BLOCK_W,2*HDR_BLOCK_H, HDR_BLOCK_W,  name_image);
+		writeFile(pWeightBuff,  			HDR_BLOCK_W,HDR_BLOCK_H, HDR_FILTER_W, name_weight);
+		//countFiles++;
 	}
 #endif
 
-/*
+
 	Max3x3AndBilinear(	pWeightBuff,
 						pL_S_ImageBuff[buffIdx], 						 
-						HDR_BLOCK_W, 
+						HDR_FILTER_W, 
 						HDR_BLOCK_W, 
 						HDR_BLOCK_H, 
 						HDR_BLOCK_W,
 						pHDRout);
 
 #if DEBUG_OUTPUT_FILES
-    char name_str1[512];
-	if  ( countFiles < 128  )
+    char name_hdr[512];
+	if  ( y_pos < 2  )
 	{
 #if __XM4__
-		sprintf(name_str, "%s_%04d-%04d.dat", "hdr_ceva", y_pos,x_pos);
+		sprintf(name_hdr, "%s_%04d-%04d.dat", "hdr_ceva", y_pos,x_pos);
 #else
-		sprintf(name_str, "%s_%04d-%04d.dat", "hdr_vs", y_pos,x_pos);
+		sprintf(name_hdr, "%s_%04d-%04d.dat", "hdr_vs", y_pos,x_pos);
 #endif
-		writeFile(pHDRout, HDR_BLOCK_H*HDR_BLOCK_W, HDR_BLOCK_W, name_str1);
+		writeFile(pHDRout, HDR_BLOCK_W, HDR_BLOCK_H, HDR_BLOCK_W, name_hdr);
 		countFiles++;
 	}
 #endif
-*/
+
+
 	buffIdx++;
 }
 

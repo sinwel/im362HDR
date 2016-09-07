@@ -80,10 +80,9 @@
 
 #endif
 
-void writeFile(RK_U8 *data, int Num, int Gap, char* FileName);
+void writeFile(RK_U8 *data, int cols, int rows, int stride, char* FileName);
 
-void writeFile(RK_U16 *data, int Num, int Gap, char* FileName);
-
+void writeFile(RK_U16 *data, int cols, int rows, int stride, char* FileName);
 void writeBinFile(RK_U16 *data, int Num, char* FileName);
 
 // Copy Block Data

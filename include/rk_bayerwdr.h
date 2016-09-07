@@ -47,7 +47,7 @@
 #define     HDR_BLOCK_H	    32
 #define     HDR_PADDING 	2
 #define	    HDR_SRC_STRIDE (HDR_BLOCK_W+2*HDR_PADDING)
-
+#define	    HDR_FILTER_W   (HDR_BLOCK_W+2) // for 3x3 filter.
 
 
 #define     CODE_SCATTER 		1
