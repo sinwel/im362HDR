@@ -80,6 +80,7 @@
 
 #endif
 
+void writeFile(RK_U8 *data, int Num, int Gap, char* FileName);
 
 void writeFile(RK_U16 *data, int Num, int Gap, char* FileName);
 

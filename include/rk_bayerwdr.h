@@ -48,9 +48,18 @@
 #define     HDR_PADDING 	2
 #define	    HDR_SRC_STRIDE (HDR_BLOCK_W+2*HDR_PADDING)
 
-//#define     DEBUG_OUTPUT_FILES                  1
 
-#define     CEVA_VECC                           1
+
+#define     CODE_SCATTER 		1
+
+#define     R_B_LONG_PATTERN	0X5555
+#define     R_B_SHORT_PATTERN	0XAAAA 
+#define     G_LONG_PATTERN		0XFFFF
+#define     G_SHORT_PATTERN		0X0
+#define     CONNECT_LUT         1
+
+#define     CEVA_VECC           1
+
 #ifdef  WIN32
 #define DEBUG_VECC		    1
 #else

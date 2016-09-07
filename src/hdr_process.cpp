@@ -15,13 +15,13 @@ RK_U16		p_u16Src[8*52] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") =
 {
 	#include "../data/data8x52.dat"
 };
-RK_U16		p_u16Tab[961]  PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") =
+RK_U8		p_u16Tab[961]  PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") =
 {
 	#include "../table/tone_mapping_961.dat"
 };
 
 RK_U16		pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
-RK_U16		pWeightBuff[2][HDR_BLOCK_H*HDR_BLOCK_W] 		PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
+RK_U8 		pWeightBuff[HDR_BLOCK_H*HDR_BLOCK_W] 			PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
 RK_U16		pHDRout[HDR_BLOCK_H*HDR_BLOCK_W] 				PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
 
 RK_U16 		g_pHdrRawBlockBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	= {0};
@@ -90,21 +90,22 @@ void residualLUT(RK_U16 *p_u16Long, 	//<<! [in] long time image.
 					int stride, 		//<<! [in] residual scale factor
 					RK_U16  normValue, 	//<<! [in] refValue
 					unsigned int u32Cols);
-void Max3x3(	RK_U16 *p_u16Src, 
-				RK_U16 *p_u16Dst, 
-				int s32SrcStep, 
-				int s32DstStep, 
-				unsigned int u32Rows, 
-				unsigned int u32Cols);
+void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
+							 RK_U16 *p_u16ImageL_S,	//<<! [in] long and short image
+							 int s32SrcStep, 
+							 int s32DstStep, 
+							 int u32Rows, 
+							 int u32Cols,
+							 RK_U16 *p_u16Dst);
 
 void zigzagDebayer(	RK_U16 *p_u16Src, 
-						RK_U16 *p_u16Tab, 
+						RK_U8  *p_u16Tab, 
 						RK_U16 blockW,
 						RK_U16 blockH,
 						RK_U16 stride,
 						RK_U16 normValue,
-						RK_U16 *buff	//<<! [out] 4x32 short16 for 4x32 block 
-						);
+						RK_U16 *buff,	//<<! [out] 32x64 short16  long and short
+						RK_U8  *scale);
 
 
 
@@ -156,31 +157,48 @@ void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, bool bFristCTUli
 					validH,
 					HDR_SRC_STRIDE,
 					1024-64,
-					pL_S_ImageBuff[buffIdx]); 	
+					pL_S_ImageBuff[buffIdx],
+					pWeightBuff); 	
 
 #if DEBUG_OUTPUT_FILES
-    char name_str[512];
+    char name_image[512], name_weight[512];;
 	if  ( countFiles < 128 && x_pos < 4 )
 	{
 #if __XM4__
-		sprintf(name_str, "%s_%04d-%04d.dat", "long_short_image_ceva", y_pos,x_pos);
+		sprintf(name_image, "%s_%04d-%04d.dat", "LongShortImg_ceva", y_pos,x_pos);
+		sprintf(name_weight, "%s_%04d-%04d.dat", "weight_ceva", y_pos,x_pos);
 #else
-		sprintf(name_str, "%s_%04d-%04d.dat", "long_short_image", y_pos,x_pos);
+		sprintf(name_image, "%s_%04d-%04d.dat", "LongShortImg_vs", y_pos,x_pos);
+		sprintf(name_weight, "%s_%04d-%04d.dat", "weightvs", y_pos,x_pos);
 #endif
-		writeFile(pL_S_ImageBuff[buffIdx], 2*HDR_BLOCK_H*HDR_BLOCK_W, HDR_BLOCK_W, name_str);
+		writeFile(pL_S_ImageBuff[buffIdx], 2*HDR_BLOCK_H*HDR_BLOCK_W, HDR_BLOCK_W, name_image);
+		writeFile(pWeightBuff,  HDR_BLOCK_H*HDR_BLOCK_W, HDR_BLOCK_W, name_weight);
 		countFiles++;
 	}
 #endif
 
-	
 /*
-	residualLUT(pL_S_ImageBuff[(buffIdx+1)&1],			//<<! [in] long time image.
-				pL_S_ImageBuff[(buffIdx+1)&1] + 4*32, 	//<<! [in] short time image.
-				p_u16Tab, 				//<<! [in] table
-				pWeightBuff[buffIdx],			//<<! [out] bilinear weight
-				stride, 				//<<! [in] 
-				normValue, 				//<<! [in] refValue
-				32);	
+	Max3x3AndBilinear(	pWeightBuff,
+						pL_S_ImageBuff[buffIdx], 						 
+						HDR_BLOCK_W, 
+						HDR_BLOCK_W, 
+						HDR_BLOCK_H, 
+						HDR_BLOCK_W,
+						pHDRout);
+
+#if DEBUG_OUTPUT_FILES
+    char name_str1[512];
+	if  ( countFiles < 128  )
+	{
+#if __XM4__
+		sprintf(name_str, "%s_%04d-%04d.dat", "hdr_ceva", y_pos,x_pos);
+#else
+		sprintf(name_str, "%s_%04d-%04d.dat", "hdr_vs", y_pos,x_pos);
+#endif
+		writeFile(pHDRout, HDR_BLOCK_H*HDR_BLOCK_W, HDR_BLOCK_W, name_str1);
+		countFiles++;
+	}
+#endif
 */
 	buffIdx++;
 }

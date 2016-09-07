@@ -26,12 +26,6 @@
 #include "profiler.h"
 
 
-#define CODE_SCATTER 		1
-
-#define R_B_LONG_PATTERN	0X5555
-#define R_B_SHORT_PATTERN	0XAAAA 
-#define G_LONG_PATTERN		0XFFFF
-#define G_SHORT_PATTERN		0X0
 
 /**
  * 
@@ -175,49 +169,76 @@ void residualLUT(RK_U16 *p_u16Long, 	//<<! [in] long time image.
 
 // 0.23 cycle/pixel
 
-void Max3x3(	ushort *p_u16Src, 
-				ushort *p_u16Dst, 
-				int s32SrcStep, 
-				int s32DstStep, 
-				uint u32Rows, 
-				uint u32Cols)
+void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
+							 RK_U16 *p_u16ImageL_S,	//<<! [in] long and short image
+							 int s32SrcStep, 
+							 int s32DstStep, 
+							 int u32Rows, 
+							 int u32Cols,
+							 RK_U16 *p_u16Dst)
 {
+	
 	uint row, col;
-	ushort* p_src = p_u16Src;
-	ushort* p_dst = p_u16Dst;
-	ushort16 v0a, v0b, v0c, vdummy;
-	ushort16 v1a, v1b, v1c;
-	ushort16 v2a, v2b, v2c;
-	ushort16 u1;
+	RK_U8* 	p_tab  = p_u8Weight;
+	RK_U16* p_imgL = p_u16ImageL_S;
+	RK_U16* p_imgS = p_u16ImageL_S + 32*64;
+	short offset[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15};
+	short16 voffset = *(short16*)offset;
+	
+	unsigned char cfg_fir[32] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+							16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
+	unsigned char cfg_snd[32] = {16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
+							 32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47};
+	uchar32 vcfg_fir = *(uchar32*)cfg_fir;
+	uchar32 vcfg_snd = *(uchar32*)cfg_snd;
+	uchar32 v0a, v0b, v0c, vdummy;
+	uchar32 v1a, v1b, v1c;
+	uchar32 v2a, v2b, v2c;
+	uchar32 u1,oneSubu1,splitBiEven,splitBiOdd;
+	ushort16 imgL,imgS,hdrOut;
 	uint vprMask;
 	uint vprRightMask;
 
 	vprMask = 0xFFFFFFFF;
 	vprRightMask = 0xFFFFFFFF;
-	if ((u32Cols & 15) != 0)
-		vprRightMask = ((1 << (u32Cols & 15)) - 1);
+	if ((u32Cols & 31) != 0)
+		vprRightMask = ((1 << (u32Cols & 31)) - 1);
 
-	for (col = 0; col < u32Cols; col += 16)
+	for(col = 0; col < u32Cols; col += 16) 
 	{
-		if (u32Cols - col < 16)
+		if (u32Cols - col < 32)
 			vprMask = vprRightMask;
-
-		p_src = p_u16Src - s32SrcStep + col - 1;
-		p_dst = p_u16Dst + col;
-
-		vldov((ushort16*)(p_src), v0a, v0b, v0c, vdummy);
-		p_src += s32SrcStep;
-		v0a = vmax(v0a, v0b, v0c);
-		vldov((ushort16*)(p_src), v1a, v1b, v1c, vdummy);
-		p_src += s32SrcStep;
-		v1a = vmax(v1a, v1b, v1c);
-		vldov((ushort16*)(p_src), v2a, v2b, v2c, vdummy);
-		p_src += s32SrcStep;
-
-		for (row = 0; row < u32Rows; row++)
+		
+		if (0 == (col&31))
+		{
+			/* load the weight */
+			vldov((uchar32*)(p_tab), v0a, v0b, v0c, vdummy);
+			p_tab += s32SrcStep;
+			v0a = vmax(v0a, v0b, v0c);
+			vldov((uchar32*)(p_tab), v1a, v1b, v1c, vdummy);
+			p_tab += s32SrcStep;
+			v1a = vmax(v1a, v1b, v1c);
+			vldov((uchar32*)(p_tab), v2a, v2b, v2c, vdummy);
+			p_tab += s32SrcStep;
+		}
+		/* load the long short image which store by even and odd */
+		//vldchk(p_u16ImageL_S, imgL, imgS);  
+		imgL = vpld(p_imgL,voffset);  
+		imgS = vpld(p_imgS,voffset);  
+		p_imgL += s32SrcStep;
+		p_imgS += s32SrcStep;
+		
+		for(row = 0; row < u32Rows; row++) 
 		{
 			v2a = vmax(v2a, v2b, v2c);
-			u1 = vmax(v0a, v1a, v2a);
+			u1  = vmax(v0a, v1a, v2a);
+
+			//D_adj = ordfilt2(D_scale, 9, ones(3,3));	
+			//out = (l_ref_image.*(normlizeValue-D_adj)+s_ref_image.*D_adj)/normlizeValue;
+			oneSubu1 		= (uchar32)vsub((unsigned char)255,u1);
+			splitBiEven		= (uchar32)vperm(oneSubu1,u1,vcfg_fir); // low for long, high for short.
+			splitBiOdd		= (uchar32)vperm(oneSubu1,u1,vcfg_snd); // low for long, high for short.
+			hdrOut 			= (ushort16)vmac3(splitsrc, psl, imgL, imgS, 0 == (col&31) ? splitBiEven : splitBiOdd, (uint16) 0, (unsigned char)8); 
 
 			v0a = v1a;
 			v0b = v1b;
@@ -225,26 +246,45 @@ void Max3x3(	ushort *p_u16Src,
 			v1a = v2a;
 			v1a = v2a;
 			v1a = v2a;
-			vldov((ushort16*)(p_src), v2a, v2b, v2c, vdummy);
-			p_src += s32SrcStep;
+			vldov((uchar32*)(p_tab), v2a, v2b, v2c, vdummy);
+			p_tab += s32SrcStep;
 
+			/* load the long short image which store by even and odd */
+			//vldchk(p_u16ImageL_S, imgL, imgS);  
+			imgL = vpld(p_imgL,voffset);  
+			imgS = vpld(p_imgS,voffset);  
+			p_imgL += s32SrcStep;
+			p_imgS += s32SrcStep;
+			
+		#if 1
 			// store 32 result pixels
-			vst(u1, (ushort16*)p_dst, vprMask);
-			p_dst += s32DstStep;
+			vst(hdrOut, (ushort16*)p_u16Dst, vprMask);
+		#else
+			// WDR, read prev light to bilinear the out.
+		
+		#endif
+			p_u16Dst+=s32DstStep;
 		}
+		if (0 == (col&31))
+			p_tab  = p_u8Weight + col*2;		 
+		
+		p_imgL = p_u16ImageL_S 	+ col;			 
+		p_imgS = p_u16ImageL_S 	+ 32*64 + col;	 
+
 	}
 	//GET_FUNCTION_NAME(ceva::g_p_function_name);
 }
 
 // 4x32 block process
 void zigzagDebayer(	RK_U16 *p_u16Src, 
-						RK_U16 *p_u16Tab, 
+						RK_U8  *p_u16Tab, 
 						RK_U16 blockW,
 						RK_U16 blockH,
 						RK_U16 stride,
 						RK_U16 normValue,
-						RK_U16 *buff	//<<! [out] 4x32 short16 for 4x32 block 
-						) 
+						RK_U16 *buff,	//<<! [out] 32x64 short16  long and short
+						RK_U8  *scale) 	//<<! [out] 32x64 short16  table
+						
 {
 #ifdef __XM4__
 	PROFILER_START(32, 64);
@@ -253,6 +293,7 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	ushort16 vG0,vR0,vB1,vG1,vG2,vR2,vB3,vG3,vG4,vR4,vB5,vG5,vG6,vR6,vB7,vG7;
 	ushort16 vGR0,vBG1,vGR2,vBG3,vGR4,vBG5,vGR6,vBG7;
 	ushort16 v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13;
+	uchar16  vt0,vt1,vt2,vt3,vt4,vt5,vt6,vt7;
 	ushort16 vBayerL0Seg0,vBayerL1Seg0,vBayerL2Seg0,vBayerL3Seg0;
 	ushort16 vBayerL0Seg1,vBayerL1Seg1,vBayerL2Seg1,vBayerL3Seg1;	
 	
@@ -295,9 +336,24 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 	unsigned short* pL1Blu_s = buff   + 3*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
 	unsigned short* pL1G1_s	 = buff+1 + 3*HDR_BLOCK_W + HDR_BLOCK_H*HDR_BLOCK_W;   
 
+	unsigned char* pScaleL0G0	= scale 									;                              
+	unsigned char* pScaleL0Red = scale+1									;                              
+	unsigned char* pScaleL0Blu	= scale	  + HDR_BLOCK_W 	;                              
+	unsigned char* pScaleL0G1	= scale+1 + HDR_BLOCK_W 	;                              
+	unsigned char* pScaleL1G0	= scale   + 2*HDR_BLOCK_W ;                              
+	unsigned char* pScaleL1Red = scale+1 + 2*HDR_BLOCK_W ;                              
+	unsigned char* pScaleL1Blu = scale   + 3*HDR_BLOCK_W ;                              
+	unsigned char* pScaleL1G1	= scale+1 + 3*HDR_BLOCK_W ;                              
+      
+
 	unsigned short  OffsetGap2[16] 		= {	0,	2, 4, 6, 8,10,12,14,
 											16,18,20,22,24,26,28,30};
 	short16 vOffsetGap2		 = *(short16*)(&OffsetGap2);	
+
+	unsigned short  OffsetGap4[16] 		= {	0,	4, 8, 12, 16,20,24,28,
+											32,36,40, 44, 48,52,56,60};
+	short16 vOffsetGap4		 = *(short16*)(&OffsetGap4);	
+
 	
 	unsigned short* pInLine0 = p_u16Src ;				// + 3,Load R 
 	unsigned short* pInLine1 = p_u16Src + stride 	;	// + 1 load G & B
@@ -676,6 +732,95 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			vpst(vBL1Short,  pL1Blu_s, vOffsetGap2);
 			vpst(vG0L1Short, pL1G0_s,  vOffsetGap2);
 			vpst(vG1L1Short, pL1G1_s,  vOffsetGap2);
+		#else
+			// even / odd store long and short image.
+			vpst(vG0L0Long, pL0G0,  vOffsetGap4);
+			vpst(vG0L0Short,pL0Red, vOffsetGap4);
+			vpst(vBL0Long,  pL0Blu, vOffsetGap2);
+			vpst(vG1L0Long, pL0G1,  vOffsetGap2);
+
+			vpst(vRL0Short,	 pL0Red_s, vOffsetGap2);
+			vpst(vBL0Short,  pL0Blu_s, vOffsetGap2);
+			vpst(vG0L0Short, pL0G0_s,  vOffsetGap2);
+			vpst(vG1L0Short, pL0G1_s,  vOffsetGap2);
+
+			vpst(vRL1Long, 	pL1Red, vOffsetGap2);
+			vpst(vBL1Long,  pL1Blu, vOffsetGap2);
+			vpst(vG0L1Long, pL1G0,  vOffsetGap2);
+			vpst(vG1L1Long, pL1G1,  vOffsetGap2);
+
+			vpst(vRL1Short,	 pL1Red_s, vOffsetGap2);
+			vpst(vBL1Short,  pL1Blu_s, vOffsetGap2);
+			vpst(vG0L1Short, pL1G0_s,  vOffsetGap2);
+			vpst(vG1L1Short, pL1G1_s,  vOffsetGap2);
+		#endif
+
+#if 0//CONNECT_LUT
+					
+			// ------------------------------------------
+			// use difference to LUT
+			// ------------------------------------------
+			v0	= vabssub(vG0L0Long, vG0L0Short);
+			v1	= vabssub(vRL0Long,  vRL0Short);
+			v2	= vabssub(vBL0Long,  vBL0Short);
+			v3	= vabssub(vG1L0Long, vG1L0Short);
+
+			v4	= vabssub(vG0L1Long, vG0L1Short);
+			v5	= vabssub(vRL1Long,  vRL1Short);
+			v6	= vabssub(vBL1Long,  vBL1Short);
+			v7	= vabssub(vG1L1Long, vG1L1Short);
+
+			// scale the diff by [2^param.bits/(param.noise*param.exptimes)] = 1024/(64*8)
+			v0 	= (ushort16)vshiftl(v0 , 1); 
+			v1 	= (ushort16)vshiftl(v1 , 1); 
+			v2	= (ushort16)vshiftl(v2 , 1); 
+			v3	= (ushort16)vshiftl(v3 , 1); 
+			v4 	= (ushort16)vshiftl(v4 , 1); 
+			v5 	= (ushort16)vshiftl(v5 , 1); 
+			v6	= (ushort16)vshiftl(v6 , 1); 
+			v7	= (ushort16)vshiftl(v7 , 1); 
+
+			// and min(x,ref)
+			v0 	= vmin(v0 , (ushort16) normValue);         
+			v1 	= vmin(v1 , (ushort16) normValue);         
+			v2	= vmin(v2 , (ushort16) normValue);         
+			v3	= vmin(v3 , (ushort16) normValue);         
+			v4 	= vmin(v4 , (ushort16) normValue);         
+			v5 	= vmin(v5 , (ushort16) normValue);         
+			v6	= vmin(v6 , (ushort16) normValue);         
+			v7	= vmin(v7 , (ushort16) normValue);         
+
+			// LUT
+			
+			vt0 = vpld(p_u16Tab, (short16)v0);
+			vt1 = vpld(p_u16Tab, (short16)v1);
+			vt2 = vpld(p_u16Tab, (short16)v2);
+			vt3 = vpld(p_u16Tab, (short16)v3);
+
+			vt4 = vpld(p_u16Tab, (short16)v4);
+			vt5 = vpld(p_u16Tab, (short16)v5);
+			vt6 = vpld(p_u16Tab, (short16)v6);
+			vt7 = vpld(p_u16Tab, (short16)v7);		
+
+			vpst(vt0, 	pScaleL0G0,  vOffsetGap2);
+			vpst(vt1,	pScaleL0Red, vOffsetGap2);
+			vpst(vt2, 	pScaleL0Blu, vOffsetGap2);
+			vpst(vt3, 	pScaleL0G1,  vOffsetGap2);
+
+			vpst(vt4, 	pScaleL1G0,  vOffsetGap2);
+			vpst(vt5,	pScaleL1Red, vOffsetGap2);
+			vpst(vt6, 	pScaleL1Blu, vOffsetGap2);
+			vpst(vt7, 	pScaleL1G1,  vOffsetGap2);
+
+			/*
+			D_scale = max(D_scale, double(s_ref_image>0.9*normlizeValue)*normlizeValue );
+			D_scale = min(D_scale, (1 - double(s_ref_image < (0.85*normlizeValue)/times))*normlizeValue);
+			*/
+
+			//D_adj = ordfilt2(D_scale, 9, ones(3,3));
+			
+
+			//out = (l_ref_image.*(normlizeValue-D_adj)+s_ref_image.*D_adj)/normlizeValue;
 #endif
 
 			pL0G0	  += 4*HDR_BLOCK_W;	                        
@@ -721,64 +866,6 @@ void zigzagDebayer(	RK_U16 *p_u16Src,
 			vG1			= vG5;
 			vG3			= vG7;
 
-#if 0
-			// ------------------------------------------
-			// use difference to LUT
-			// ------------------------------------------
-			vRL0diff	= vabssub(vRL0Short, vRL0Long);
-			vBL0diff	= vabssub(vBL0Short, vBL0Long);
-			vG0L0diff	= vabssub(vG0L0Short, vG0L0Long);
-			vG1L0diff	= vabssub(vG1L0Short, vG1L0Long);
-
-			vRL1diff	= vabssub(vRL1Short, vRL1Long);
-			vBL1diff	= vabssub(vBL1Short, vBL1Long);
-			vG0L1diff	= vabssub(vG0L1Short, vG0L1Long);
-			vG1L1diff	= vabssub(vG1L1Short, vG1L1Long);
-
-			// scale the diff by [2^param.bits/(param.noise*param.exptimes)] = 1024/(64*8)
-			vRL0diff 	= (ushort16)vshiftl(vRL0diff , 1); 
-			vBL0diff 	= (ushort16)vshiftl(vBL0diff , 1); 
-			vG0L0diff	= (ushort16)vshiftl(vG0L0diff, 1); 
-			vG1L0diff	= (ushort16)vshiftl(vG1L0diff, 1); 
-			vRL1diff 	= (ushort16)vshiftl(vRL1diff , 1); 
-			vBL1diff 	= (ushort16)vshiftl(vBL1diff , 1); 
-			vG0L1diff	= (ushort16)vshiftl(vG0L1diff, 1); 
-			vG1L1diff	= (ushort16)vshiftl(vG1L1diff, 1); 
-
-			// and min(x,ref)
-			vRL0diff 	= vmin(vRL0diff , (ushort16) normValue);         
-			vBL0diff 	= vmin(vBL0diff , (ushort16) normValue);         
-			vG0L0diff	= vmin(vG0L0diff, (ushort16) normValue);         
-			vG1L0diff	= vmin(vG1L0diff, (ushort16) normValue);         
-			vRL1diff 	= vmin(vRL1diff , (ushort16) normValue);         
-			vBL1diff 	= vmin(vBL1diff , (ushort16) normValue);         
-			vG0L1diff	= vmin(vG0L1diff, (ushort16) normValue);         
-			vG1L1diff	= vmin(vG1L1diff, (ushort16) normValue);         
-
-			// perm to packed format.
-			vBayerL0Seg0 = (ushort16)vperm(vG0L0diff,vRL0diff,vcfgPack0);//G R
-			vBayerL0Seg1 = (ushort16)vperm(vG0L0diff,vRL0diff,vcfgPack1);//G R
-			vBayerL1Seg0 = (ushort16)vperm(vBL0diff,vG1L0diff,vcfgPack0);//G R
-			vBayerL1Seg1 = (ushort16)vperm(vBL0diff,vG1L0diff,vcfgPack1);//G R
-
-			vBayerL2Seg0 = (ushort16)vperm(vG0L1diff,vRL1diff,vcfgPack0);//G R
-			vBayerL2Seg1 = (ushort16)vperm(vG0L1diff,vRL1diff,vcfgPack1);//G R
-			vBayerL3Seg0 = (ushort16)vperm(vBL1diff,vG1L1diff,vcfgPack0);//G R
-			vBayerL3Seg1 = (ushort16)vperm(vBL1diff,vG1L1diff,vcfgPack1);//G R
-
-			// LUT
-			
-			v0 = vpld(p_u16Tab, (short16)vBayerL0Seg0);
-			v1 = vpld(p_u16Tab, (short16)vBayerL0Seg1);
-			v2 = vpld(p_u16Tab, (short16)vBayerL1Seg0);
-			v3 = vpld(p_u16Tab, (short16)vBayerL1Seg1);
-
-			v4 = vpld(p_u16Tab, (short16)vBayerL2Seg0);
-			v5 = vpld(p_u16Tab, (short16)vBayerL2Seg1);
-			v6 = vpld(p_u16Tab, (short16)vBayerL3Seg0);
-			v7 = vpld(p_u16Tab, (short16)vBayerL3Seg1);		
-
-#endif	
 		}
 		// snd col
 		pInLine0 = p_u16Src + 32 ;						// + 3,Load R 
