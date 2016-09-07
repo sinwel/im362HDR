@@ -162,7 +162,7 @@ void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, bool bFristCTUli
 
 #if DEBUG_OUTPUT_FILES
     char name_image[512], name_weight[512];;
-	if  ( y_pos < 2  )
+	if  ( y_pos == 33  )
 	{
 #if __XM4__
 		sprintf(name_image, "%s_%04d-%04d.dat", "LongShortImg_ceva", y_pos,x_pos);
@@ -184,18 +184,22 @@ void hdr_block_process(RK_U16 *pRawInBuff, RK_U16 *pHDRoutBuff, bool bFristCTUli
 						HDR_BLOCK_W, 
 						HDR_BLOCK_H, 
 						HDR_BLOCK_W,
+				#if 0//DEBUG_OUTPUT_FILES
 						pHDRout);
+				#else
+						pHDRoutBuff);
+				#endif
 
 #if DEBUG_OUTPUT_FILES
     char name_hdr[512];
-	if  ( y_pos < 2  )
+	if  ( y_pos == 33  )
 	{
 #if __XM4__
 		sprintf(name_hdr, "%s_%04d-%04d.dat", "hdr_ceva", y_pos,x_pos);
 #else
 		sprintf(name_hdr, "%s_%04d-%04d.dat", "hdr_vs", y_pos,x_pos);
 #endif
-		writeFile(pHDRout, HDR_BLOCK_W, HDR_BLOCK_H, HDR_BLOCK_W, name_hdr);
+		writeFile(pHDRoutBuff/*pHDRout*/, HDR_BLOCK_W, HDR_BLOCK_H, HDR_BLOCK_W, name_hdr);
 		countFiles++;
 	}
 #endif
@@ -269,15 +273,17 @@ void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned shor
 	int rows	   = ((H+blkHgt-1)/blkHgt)*blkHgt;
 	int cols	   = ((W+blkWid-1)/blkWid)*blkWid;
 
-	
-
-	
+	int blkOutCnt  = 0;
+	int x_prev	   = 0;
+	int y_valid	   = 0;
+	int x		   = -1;
 	for (int y = 0; y < rows; y += HDR_BLOCK_H)
 	{
-		y_pos = y/HDR_BLOCK_H;
-		for (int x = 0; x < cols; x += HDR_BLOCK_W)
+		if  ( y_pos == 33  )
+			y_pos = y_pos;
+		for ( x = 0; x < cols; x += HDR_BLOCK_W)
 		{
-			x_pos = x/HDR_BLOCK_W;
+			x_pos = x_prev/HDR_BLOCK_W;
 			// Fill Block32x64 from TemporalDenoise
 		    CopyBlockData(src+x+y*W, 		  g_pHdrRawBlockBuf[buffIdx]+4*nHdrBufWid+2, min_(HDR_BLOCK_W,W-x), min_(HDR_BLOCK_H,H-y), W*2, nHdrBufWid*2);
 
@@ -308,19 +314,25 @@ void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned shor
 
 				// Update 4-BottomRows to RowBuf, waiting bottom-right corner data.
 				CopyBlockData(g_pHdrRawBlockBuf[buffIdx] + HDR_BLOCK_H*nHdrBufWid, 
-				              g_pHdrRawRowBuf + x - HDR_BLOCK_W, 
+				              g_pHdrRawRowBuf + x_prev, 
 				              nHdrBufWid, 4, nHdrBufWid*2, 4096*2);
 
-				hdr_block_process(g_pHdrRawBlockBuf[buffIdx], g_pHdrOutBuf[buffIdx], y < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x), min_(HDR_BLOCK_H,H-y));
 				
+				y_valid = (x == 0)? y - HDR_BLOCK_H : y;
+				y_pos   = y_valid/HDR_BLOCK_H;
+				hdr_block_process(g_pHdrRawBlockBuf[buffIdx], g_pHdrOutBuf[buffIdx], y_valid < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
+
+		        dma_outtransf(dst+x_prev, g_pHdrOutBuf[buffIdx], y_valid, HDR_BLOCK_H, min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
+
 			}
-
-			
+			x_prev = x;	
 		}
-
 
 	}
 
+	// do last block
+	hdr_block_process(g_pHdrRawBlockBuf[(buffIdx+1)&1], g_pHdrOutBuf[(buffIdx+1)&1], y_valid < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
+    dma_outtransf(dst+x_prev, g_pHdrOutBuf[(buffIdx+1)&1], y_valid, min_(HDR_BLOCK_H,H-y_valid), min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
 
 
 #endif

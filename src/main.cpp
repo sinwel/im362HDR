@@ -37,7 +37,7 @@ void main(int argc, char **argv)
 	unsigned short 	*src,*dst;
 	src = (unsigned short*)malloc(W*H*sizeof(unsigned short));
 	dst = (unsigned short*)malloc(W*H*sizeof(unsigned short));
-	fread(src, 2, W*H, fp);
+	fread(src, 2, W*H+2016, fp);
 	fclose(fp);
 
 	hdrprocess_sony_raw(src, dst, 0, W, H, 4, 0);
