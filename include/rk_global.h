@@ -46,24 +46,24 @@
 // Align
 #define     ALIGN_4BYTE_WIDTH(Wid, BitCt)	(((int)(Wid) * (BitCt) + 31) / 32 * 4) // 4ByteAlign
 //#define     ALIGN_4PIXEL_START(X)           ((long)(X) / 4 * 4)                     // 4PixelAlign
-#define     ALIGN_4PIXEL_START(X)           ((RK_S32)(X) - ((RK_S32)(X)%4!=0)*2)  //((X)%4) ? (((X)/4)-4) : (X)
-#define     ALIGN_4PIXEL_WIDTH(W)           ((RK_U16)((double)(W) / 4 + 0.5)  * 4)    // 4PixelAlign
+#define     ALIGN_4PIXEL_START(X)           ((int32_t)(X) - ((int32_t)(X)%4!=0)*2)  //((X)%4) ? (((X)/4)-4) : (X)
+#define     ALIGN_4PIXEL_WIDTH(W)           ((uint16_t)((double)(W) / 4 + 0.5)  * 4)    // 4PixelAlign
 
 
 
 //////////////////////////////////////////////////////////////////////////
 ////-------- Functions Definition
 //---- MAX() & MIN()
-#define		MAX(a, b)			    ( (a) > (b) ? (a) : (b) )
-#define		MIN(a, b)			    ( (a) < (b) ? (a) : (b) )
+//#define		MAX(a, b)			    ( (a) > (b) ? (a) : (b) )
+//#define		MIN(a, b)			    ( (a) < (b) ? (a) : (b) )
 
 //---- ABS()
-#define	    ABS_U16(a)			    (RK_U16)( (a) > 0 ? (a) : (-(a)) )
+#define	    ABS_U16(a)			    (uint16_t)( (a) > 0 ? (a) : (-(a)) )
 
 //---- ROUND()
-#define	    ROUND_U16(a)		    (RK_U16)( (double) (a) + 0.5 )
-#define	    ROUND_U32(a)		    (RK_U32)( (double) (a) + 0.5 )
-#define	    ROUND_I32(a)		    (RK_S32)( (a) > 0 ? ((double) (a) + 0.5) : ((double) (a) - 0.5) )
+#define	    ROUND_U16(a)		    (uint16_t)( (double) (a) + 0.5 )
+#define	    ROUND_U32(a)		    (uint32_t)( (double) (a) + 0.5 )
+#define	    ROUND_I32(a)		    (int32_t)( (a) > 0 ? ((double) (a) + 0.5) : ((double) (a) - 0.5) )
 
 //---- CEIL() & FLOOR()
 #define	    CEIL(a)                 (int)( (double)(a) > (int)(a) ? (int)((a)+1) : (int)(a) )  

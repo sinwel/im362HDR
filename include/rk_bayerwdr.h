@@ -43,11 +43,12 @@
 #include <asm-dsp.h>
 #endif
 
-#define     HDR_BLOCK_W	    64
-#define     HDR_BLOCK_H	    32
-#define     HDR_PADDING 	2
-#define	    HDR_SRC_STRIDE (HDR_BLOCK_W+2*HDR_PADDING)
-#define	    HDR_FILTER_W   (HDR_BLOCK_W+2) // for 3x3 filter.
+#define     HDR_BLOCK_W				64
+#define     HDR_BLOCK_H				32
+#define     HDR_PADDING 			2
+#define	    HDR_SRC_STRIDE			(HDR_BLOCK_W+2*HDR_PADDING)
+#define	    HDR_FILTER_W			(HDR_BLOCK_W+2) // for 3x3 filter.
+#define     ALIGN_CLIP(w,wAlign)    (((w+wAlign-1)/wAlign)*wAlign);
 
 
 #define     CODE_SCATTER 		1
@@ -57,13 +58,15 @@
 #define     G_LONG_PATTERN		0XFFFF
 #define     G_SHORT_PATTERN		0X0
 #define     CONNECT_LUT         1
+#define     CONNECT_WDR         0
 
 #define     CEVA_VECC           1
 
+
 #ifdef  WIN32
-#define DEBUG_VECC		    1
+#define     DEBUG_VECC		    1
 #else
-#define DEBUG_VECC		    0
+#define     DEBUG_VECC		    0
 #endif
 
  

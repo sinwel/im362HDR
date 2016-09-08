@@ -80,13 +80,13 @@
 
 #endif
 
-void writeFile(RK_U8 *data, int cols, int rows, int stride, char* FileName);
+void writeFile(uint8_t *data, int cols, int rows, int stride, char* FileName);
 
-void writeFile(RK_U16 *data, int cols, int rows, int stride, char* FileName);
-void writeBinFile(RK_U16 *data, int Num, char* FileName);
+void writeFile(uint16_t *data, int cols, int rows, int stride, char* FileName);
+void writeBinFile(uint16_t *data, int Num, char* FileName);
 
 // Copy Block Data
-int CopyBlockData(RK_U16* pSrc, RK_U16* pDst, int nWid, int nHgt, int nSrcStride, int nDstStride);
+int CopyBlockData(uint16_t* pSrc, uint16_t* pDst, int nWid, int nHgt, int nSrcStride, int nDstStride);
 
 #endif // _RK_DEBUG_H
 

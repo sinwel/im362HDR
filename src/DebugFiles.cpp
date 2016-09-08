@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include "rk_typedef.h"                 // Type definition
 
-void writeFile(RK_U8 *data, int cols, int rows, int stride, char* FileName)
+void writeFile(uint8_t *data, int cols, int rows, int stride, char* FileName)
 {
-	RK_U8 *p = data;
+	uint8_t *p = data;
 	FILE* fp = fopen(FileName,"w");
 	for ( int j = 0 ; j < rows; j++ )
 	{
@@ -19,9 +19,9 @@ void writeFile(RK_U8 *data, int cols, int rows, int stride, char* FileName)
 	fclose(fp);
 }
 
-void writeFile(RK_U16 *data, int cols, int rows, int stride, char* FileName)
+void writeFile(uint16_t *data, int cols, int rows, int stride, char* FileName)
 {
-	RK_U16 *p = data;
+	uint16_t *p = data;
 	FILE* fp = fopen(FileName,"w");
 	for ( int j = 0 ; j < rows; j++ )
 	{
@@ -37,10 +37,10 @@ void writeFile(RK_U16 *data, int cols, int rows, int stride, char* FileName)
 	fclose(fp);
 }
 
-void writeBinFile(RK_U16 *data, int Num, char* FileName)
+void writeBinFile(uint16_t *data, int Num, char* FileName)
 {
 	FILE* fp = fopen(FileName,"wb");
-	fwrite(data,sizeof(RK_U16),Num,fp);
+	fwrite(data,sizeof(uint16_t),Num,fp);
 	fclose(fp);
 }
 
