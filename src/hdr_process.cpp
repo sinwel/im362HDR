@@ -276,7 +276,8 @@ void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned shor
 	int blkOutCnt  = 0;
 	int x_prev	   = 0;
 	int y_valid	   = 0;
-	int x		   = -1;
+	int x		   = 0;
+	bool bFristCTUline = 0;
 	for (int y = 0; y < rows; y += HDR_BLOCK_H)
 	{
 		if  ( y_pos == 33  )
@@ -320,9 +321,14 @@ void hdrprocess_sony_raw(unsigned short *src, unsigned short *dst, unsigned shor
 				
 				y_valid = (x == 0)? y - HDR_BLOCK_H : y;
 				y_pos   = y_valid/HDR_BLOCK_H;
-				hdr_block_process(g_pHdrRawBlockBuf[buffIdx], g_pHdrOutBuf[buffIdx], y_valid < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
+				bFristCTUline = y_valid < HDR_BLOCK_H;
+				hdr_block_process(g_pHdrRawBlockBuf[buffIdx], g_pHdrOutBuf[buffIdx], bFristCTUline ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
 
-		        dma_outtransf(dst+x_prev, g_pHdrOutBuf[buffIdx], y_valid, HDR_BLOCK_H, min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
+				if (bFristCTUline) // skip the first "HDR_PADDING" line data.
+			        dma_outtransf(dst+x_prev, g_pHdrOutBuf[buffIdx] + HDR_PADDING*HDR_BLOCK_W, 
+			        	y_valid , HDR_BLOCK_H - HDR_PADDING, min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
+				else
+			        dma_outtransf(dst+x_prev, g_pHdrOutBuf[buffIdx], y_valid - HDR_PADDING, HDR_BLOCK_H, min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
 
 			}
 			x_prev = x;	
