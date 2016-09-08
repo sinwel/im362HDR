@@ -24,7 +24,7 @@
 #include "rk_typedef.h"
 #include "rk_bayerwdr.h"
 #include "profiler.h"
-
+#include "DebugFiles.h"
 
 
 /**
@@ -175,7 +175,14 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 							 int s32DstStep, 
 							 int u32Rows, 
 							 int u32Cols,
+						#if HDR_DEBUG_ENABLE
+							 RK_U16 *p_u16Dst,
+							 RK_U8  *p_u8FilterW,
+							 int xPos,
+							 int yPos)
+						#else
 							 RK_U16 *p_u16Dst)
+						#endif
 {
 	
 	uint row, col;
@@ -183,6 +190,9 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 	RK_U16* p_imgL = p_u16ImageL_S;
 	RK_U16* p_imgS = p_u16ImageL_S + 32*64;
 	RK_U16* pHDRout  = p_u16Dst;
+#if HDR_DEBUG_ENABLE	
+	RK_U8* pWeight  = p_u8FilterW;
+#endif
 	short offset[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15};
 	short16 voffset = *(short16*)offset;
 	
@@ -195,7 +205,7 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 	uchar32 v0a, v0b, v0c, vdummy;
 	uchar32 v1a, v1b, v1c;
 	uchar32 v2a, v2b, v2c;
-	uchar32 u1,oneSubu1,splitBiEven,splitBiOdd;
+	uchar32 u1,oneSubu1,splitBiEven,splitBiOdd[HDR_BLOCK_H];// cache 32 line bi factor.
 	ushort16 imgL,imgS,hdrOut;
 	uint vprMask;
 	uint vprRightMask;
@@ -240,9 +250,11 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 				//out = (l_ref_image.*(normlizeValue-D_adj)+s_ref_image.*D_adj)/normlizeValue;
 				oneSubu1 		= (uchar32)vsub((unsigned char)255,u1);
 				splitBiEven		= (uchar32)vperm(oneSubu1,u1,vcfg_fir); // low for long, high for short.
-				splitBiOdd		= (uchar32)vperm(oneSubu1,u1,vcfg_snd); // low for long, high for short.
+				splitBiOdd[row]	= (uchar32)vperm(oneSubu1,u1,vcfg_snd); // low for long, high for short.
 			}
-			hdrOut 			= (ushort16)vmac3(splitsrc, psl, imgL, imgS, 0 == (col&31) ? splitBiEven : splitBiOdd, (uint16) 128, (unsigned char)8); 
+			hdrOut 			= (ushort16)vmac3(splitsrc, psl, imgL, imgS, 0 == (col&31) ? splitBiEven : splitBiOdd[row], (uint16) 128, (unsigned char)8); 
+			if  ( yPos == 0 && xPos== 3  )
+				;//PRINT_CEVA_VRF("hdrOut", hdrOut, stderr);
 
 			v0a = v1a;
 			v0b = v1b;
@@ -263,6 +275,16 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 		#if 1
 			// store 32 result pixels
 			vst(hdrOut, (ushort16*)pHDRout, vprMask);
+			#if HDR_DEBUG_ENABLE
+			if (0 == (col&31))
+				vst(u1, (uchar32*)pWeight, vprMask);
+
+			if  ( yPos == 0 && xPos== 3  )
+				;//PRINT_CEVA_VRF("wFiltered", u1, stderr);
+
+
+			pWeight += s32DstStep;
+			#endif
 		#else
 			// WDR, read prev light to bilinear the out.
 		
@@ -271,7 +293,10 @@ void Max3x3AndBilinear (RK_U8  *p_u8Weight, 	//<<! [in] 0-255 scale tab.
 		}
 		if (0 == ((col+16)&31))
 			p_tab  = p_u8Weight + col*2;		 
-		
+	#if HDR_DEBUG_ENABLE
+		if (0 == ((col+16)&31))
+			pWeight = p_u8FilterW + col*2;;
+	#endif	
 		p_imgL = p_u16ImageL_S 	+ col + 16;			 
 		p_imgS = p_u16ImageL_S 	+ 32*64 + col + 16;;	 
 		pHDRout = p_u16Dst +  col + 16;		

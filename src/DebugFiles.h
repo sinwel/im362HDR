@@ -34,7 +34,7 @@
 #include <asm-dsp.h>
 #endif
 
-#define     DEBUG_OUTPUT_FILES          1
+#define     HDR_DEBUG_ENABLE          1
 
 #ifdef WIN32
 #define PRINT_C_GROUP(namestr,var,start_pos,num,fp,...) \
