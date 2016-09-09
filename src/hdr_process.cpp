@@ -12,23 +12,24 @@ static int y_pos ;
 static int countFiles = 0;
 // define the block parameters.
 
-uint16_t		p_u16Src[8*52] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") =
+uint16_t		p_u16Src[8*52] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") =
 {
 	#include "../data/data8x52.dat"
 };
-uint8_t		p_u16Tab[961]  PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") =
+uint8_t		p_u16Tab[961]  PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") =
 {
 	#include "../table/tone_mapping_961.dat"
 };
 
-uint16_t		pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
-uint8_t 		pWeightBuff[(HDR_BLOCK_H+2)*(HDR_BLOCK_W+2)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
-uint8_t			pWeightFilter[HDR_BLOCK_H*HDR_BLOCK_W] 			PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
+uint16_t		pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") = {0};
+uint8_t 		pWeightBuff[(HDR_BLOCK_H+2)*(HDR_BLOCK_W+2)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") = {0};
+uint8_t			pWeightFilter[HDR_BLOCK_H*HDR_BLOCK_W] 			PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") = {0};
+uint16_t		pPrevThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
 
-uint16_t 		g_HdrBlkBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	= {0};
-uint16_t 		g_HdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]										PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	= {0};
-uint16_t		g_HdrRowBuf[2*HDR_PADDING*4096] 											PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	= {0};		// 2* Line
-uint16_t		g_HdrColBuf[HDR_PADDING*HDR_BLOCK_H]										PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	= {0};	  	// 2  col
+uint16_t 		g_HdrBlkBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0")	= {0};// 36x68x2x2 = 10K
+uint16_t 		g_HdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]										PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0")	= {0};// 32x64x2x2 = 8K
+uint16_t		g_HdrRowBuf[2*HDR_PADDING*4096] 											PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")		= {0};		// 2* Line
+uint16_t		g_HdrColBuf[HDR_PADDING*HDR_BLOCK_H]										PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")		= {0};	  	// 2  col
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -86,6 +87,7 @@ int CopyBlockData(uint16_t* pSrc, uint16_t* pDst, int nWid, int nHgt, int nSrcSt
 
 void Max3x3AndBilinear(uint8_t  	*p_u8Weight, 	//<<! [in] 0-255 scale tab.
 							uint16_t 	*p_u16ImageL_S,	//<<! [in] long and short image[block32x64]
+							uint16_t 	*p_u16PrevThumb,	//<<! [in] previous frame thumb image for WDR scale.
 							int32_t 	weightStep, 		//<<! [in] weight stride which add padding.
 							int32_t 	imageStep, 		//<<! [in] 16 align
 							int32_t 	u32Rows, 			//<<! [in] 
@@ -153,8 +155,9 @@ void hdr_block_process(uint16_t *pRawInBuff,
 					pL_S_ImageBuff[buffIdx],
 					pWeightBuff+1+HDR_FILTER_W); // need be clear to zeros.	
 
-	Max3x3AndBilinear(	pWeightBuff,
-						pL_S_ImageBuff[buffIdx], 						 
+ 	Max3x3AndBilinear(	pWeightBuff,
+						pL_S_ImageBuff[buffIdx], 
+						pPrevThumb,
 						HDR_FILTER_W, 
 						HDR_BLOCK_W, 
 						validH, 
@@ -368,4 +371,6 @@ void hdrprocess_sony_raw(uint16_t 	*src,
 	hdr_block_process(g_HdrBlkBuf[(buffIdx+1)&1], g_HdrOutBuf[(buffIdx+1)&1], y_valid < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
     dma_2Dtransf(dst+x_prev, g_HdrOutBuf[(buffIdx+1)&1], y_valid - HDR_PADDING, min_(HDR_BLOCK_H,H-y_valid), min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
 
+	// 2 padding line data miss
+	
 }

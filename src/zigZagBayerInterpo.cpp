@@ -54,8 +54,9 @@
 
 // 0.23 cycle/pixel
 
-void Max3x3AndBilinear ( uint8_t *p_u8Weight, 	//<<! [in] 0-255 scale tab.
+void Max3x3AndBilinear ( uint8_t *p_u8Weight, 		//<<! [in] 0-255 scale tab.
 							 uint16_t *p_u16ImageL_S,	//<<! [in] long and short image[block32x64]
+							 uint16_t *p_u16PrevThumb,	//<<! [in] previous frame thumb image for WDR scale.
 							 int32_t weightStep, 		//<<! [in] weight stride which add padding.
 							 int32_t imageStep, 		//<<! [in] 16 align
 							 int32_t u32Rows, 			//<<! [in] 
@@ -198,7 +199,7 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 						
 {
 #ifdef __XM4__
-	PROFILER_START(32, 64);
+	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
 #endif
 	uint16_t   i,j,SecMask;
 	ushort16 vG0,vR0,vB1,vG1,vG2,vR2,vB3,vG3,vG4,vR4,vB5,vG5,vG6,vR6,vB7,vG7;

@@ -49,6 +49,8 @@
 #define	    HDR_SRC_STRIDE			(HDR_BLOCK_W+2*HDR_PADDING)
 #define	    HDR_FILTER_W			(HDR_BLOCK_W+2) // for 3x3 filter.
 #define     ALIGN_CLIP(w,wAlign)    (((w+wAlign-1)/wAlign)*wAlign);
+#define     THUMB_SIZE_W			256              // default is 4K/16
+#define     THUMB_SIZE_H			256
 
 
 #define     CODE_SCATTER 		1
