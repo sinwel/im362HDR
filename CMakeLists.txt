@@ -180,11 +180,11 @@ endif()
 # Dependency libs from opencv.
 if (CEVA_XM4_BUILD)
 	set(PLATFORM_LIBS ${PLATFORM_LIBS}
-		"C:/CEVA-ToolBox/V16/XM4/CEVA-XM4/Vec-C/xm4/lib/vs2010/libarchitectured.lib"   )
+		"D:/CEVA-ToolBox/V16/XM4/CEVA-XM4/Vec-C/xm4/lib/vs2010/libarchitectured.lib"   )
 	
 endif()
 # opencv include files.
-include_directories(. C:/CEVA-ToolBox/V16/XM4/CEVA-XM4/Vec-C/xm4/include/include  "${PROJECT_BINARY_DIR}")
+include_directories(. D:/CEVA-ToolBox/V16/XM4/CEVA-XM4/Vec-C/xm4/include/include  "${PROJECT_BINARY_DIR}")
 #add_subdirectory(lencod)
 include_directories(. ./include "${PROJECT_BINARY_DIR}")
 

@@ -12,24 +12,21 @@ static int y_pos ;
 static int countFiles = 0;
 // define the block parameters.
 
-uint16_t		p_u16Src[8*52] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") =
-{
-	#include "../data/data8x52.dat"
-};
-uint8_t		p_u16Tab[961]  PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") =
+
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint8_t		p_u16Tab[961]   =
 {
 	#include "../table/tone_mapping_961.dat"
 };
 
-uint16_t		pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") = {0};
-uint8_t 		pWeightBuff[(HDR_BLOCK_H+2)*(HDR_BLOCK_W+2)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") = {0};
-uint8_t			pWeightFilter[HDR_BLOCK_H*HDR_BLOCK_W] 			PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") = {0};
-uint16_t		pPrevThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") = {0};
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint16_t		pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W] 	 = {0};// 4kx2 store long and short image.
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint8_t 		pWeightBuff[(HDR_BLOCK_H+2)*(HDR_BLOCK_W+2)] 	 = {0};// 4k store weight  
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint8_t		pWeightFilter[HDR_BLOCK_H*HDR_BLOCK_W] 			 = {0};// 4k store weight fileterd.
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")   uint16_t		pPrevThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			 = {0};// 32k store in DDR.
 
-uint16_t 		g_HdrBlkBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] 	PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0")	= {0};// 36x68x2x2 = 10K
-uint16_t 		g_HdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]										PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0")	= {0};// 32x64x2x2 = 8K
-uint16_t		g_HdrRowBuf[2*HDR_PADDING*4096] 											PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")		= {0};		// 2* Line
-uint16_t		g_HdrColBuf[HDR_PADDING*HDR_BLOCK_H]										PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")		= {0};	  	// 2  col
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t 		g_HdrBlkBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] = {0};// 36x68x2x2 = 10K
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0") uint16_t 		g_HdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]									= {0};// 32x64x2x2 = 8K
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	  uint16_t		g_HdrRowBuf[2*HDR_PADDING*4096] 										= {0};		// 2* Line
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	  uint16_t		g_HdrColBuf[HDR_PADDING*HDR_BLOCK_H]								 	= {0};	  	// 2  col
 
 
 //////////////////////////////////////////////////////////////////////////
@@ -67,21 +64,7 @@ int CopyBlockData(uint16_t* pSrc, uint16_t* pDst, int nWid, int nHgt, int nSrcSt
     return ret;
 
 #else
-    //
-    int     ret = 0; // return value
-
-    uint8_t*     p_src = (uint8_t*)pSrc; // temp pointer
-    uint8_t*     p_dst = (uint8_t*)pDst; // temp pointer
-    for (int i=0; i < nHgt; i++)
-    {
-        memcpy(p_dst, p_src, nWid*sizeof(uint16_t));
-        p_src += nSrcStride;
-        p_dst += nDstStride;
-    }
-
-    //
-    return ret;
-
+    //DMA
 #endif
 }
 

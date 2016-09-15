@@ -2,19 +2,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include "rk_typedef.h"              // Type definition
-#if __XM4__
-#include "XM4_defines.h".
-unsigned short src[2016*1504] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA"); 
-/*= 
-{
-	#include "../data/128x32.dat"
-};*/
-unsigned short dst[2*64*32] PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0");
-
-#endif
 #define 	WORD_INSTRIDE  256
 #define 	WORD_OUTSTRIDE  256
 
+#if __XM4__
+#include "XM4_defines.h".
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") unsigned short dst[2*64*32] = {0};
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") unsigned short src[2016*1504] = {0};
+#endif
 
 
 void hdrprocess_sony_raw( unsigned short *src, 

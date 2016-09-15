@@ -201,7 +201,7 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 #ifdef __XM4__
 	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
 #endif
-	uint16_t   i,j,SecMask;
+	uint16_t i,j,SecMask,blacklevel=64;
 	ushort16 vG0,vR0,vB1,vG1,vG2,vR2,vB3,vG3,vG4,vR4,vB5,vG5,vG6,vR6,vB7,vG7;
 	ushort16 vGR0,vBG1,vGR2,vBG3,vGR4,vBG5,vGR6,vBG7;
 	ushort16 v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13;
@@ -327,20 +327,20 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 		vldchk(pInLine2, vG2, vR2);   vGR2 = *(ushort16*)(pInLine2+32);   //pInLine2 += 8*stride;
 		vldchk(pInLine3, vB3, vG3);   vBG3 = *(ushort16*)(pInLine3+32);   //pInLine3 += 8*stride;
 		// subtract blacklevel
-		vG0	= vsubsat(vG0, (unsigned short)64);
-		vR0	= vsubsat(vR0, (unsigned short)64);
-		vB1	= vsubsat(vB1, (unsigned short)64);
-		vG1	= vsubsat(vG1, (unsigned short)64);
+		vG0		= vsubsat(vG0, blacklevel);
+		vR0		= vsubsat(vR0, blacklevel);
+		vB1		= vsubsat(vB1, blacklevel);
+		vG1		= vsubsat(vG1, blacklevel);
 
-		vG2	= vsubsat(vG2, (unsigned short)64);
-		vR2	= vsubsat(vR2, (unsigned short)64);
-		vB3	= vsubsat(vB3, (unsigned short)64);
-		vG3	= vsubsat(vG3, (unsigned short)64);
+		vG2		= vsubsat(vG2, blacklevel);
+		vR2		= vsubsat(vR2, blacklevel);
+		vB3		= vsubsat(vB3, blacklevel);
+		vG3		= vsubsat(vG3, blacklevel);
 
-		vGR0	= vsubsat(vGR0, (unsigned short)64);
-		vBG1	= vsubsat(vBG1, (unsigned short)64);
-		vGR2	= vsubsat(vGR2, (unsigned short)64);
-		vBG3	= vsubsat(vBG3, (unsigned short)64);
+		vGR0	= vsubsat(vGR0, blacklevel);
+		vBG1	= vsubsat(vBG1, blacklevel);
+		vGR2	= vsubsat(vGR2, blacklevel);
+		vBG3	= vsubsat(vBG3, blacklevel);
 
 
 		vR0offset	= (ushort16)vperm(vR0,vGR0,vcfgAdjRed1);	
@@ -367,20 +367,20 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			vldchk(pInLine6, vG6, vR6);   vGR6 = *(ushort16*)(pInLine6+32);   pInLine6 += 4*stride;
 			vldchk(pInLine7, vB7, vG7);   vBG7 = *(ushort16*)(pInLine7+32);   pInLine7 += 4*stride;
 
-			vG4	= vsubsat(vG4, (unsigned short)64);
-			vR4	= vsubsat(vR4, (unsigned short)64);
-			vB5	= vsubsat(vB5, (unsigned short)64);
-			vG5	= vsubsat(vG5, (unsigned short)64);
+			vG4		= vsubsat(vG4, blacklevel);
+			vR4		= vsubsat(vR4, blacklevel);
+			vB5		= vsubsat(vB5, blacklevel);
+			vG5		= vsubsat(vG5, blacklevel);
 			
-			vG6	= vsubsat(vG6, (unsigned short)64);
-			vR6	= vsubsat(vR6, (unsigned short)64);
-			vB7	= vsubsat(vB7, (unsigned short)64);
-			vG7	= vsubsat(vG7, (unsigned short)64);
+			vG6		= vsubsat(vG6, blacklevel);
+			vR6		= vsubsat(vR6, blacklevel);
+			vB7		= vsubsat(vB7, blacklevel);
+			vG7		= vsubsat(vG7, blacklevel);
 
-			vGR4	= vsubsat(vGR4, (unsigned short)64);
-			vBG5	= vsubsat(vBG5, (unsigned short)64);
-			vGR6	= vsubsat(vGR6, (unsigned short)64);
-			vBG7	= vsubsat(vBG7, (unsigned short)64);
+			vGR4	= vsubsat(vGR4, blacklevel);
+			vBG5	= vsubsat(vBG5, blacklevel);
+			vGR6	= vsubsat(vGR6, blacklevel);
+			vBG7	= vsubsat(vBG7, blacklevel);
 			
 			// ========= line 0 GRBG ==============
 			// -------------r-----------------

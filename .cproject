@@ -60,7 +60,8 @@
 						<tool id="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.152327467" name="CEVA-XM4 C/C++ Compiler" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521">
 							<option id="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug.2078884937" name="Speed optimization level" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug" value="xm4.compiler.cycle_count_optimization_level.-O4" valueType="enumerated"/>
 							<option id="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict.1441870208" name="Distinct pointers variables are NOT aliased (-OPT:alias=restrict)" superClass="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict" value="true" valueType="boolean"/>
-							<option id="xm4.compiler.optimization.-moptimizer-file.1547144280" superClass="xm4.compiler.optimization.-moptimizer-file" value="true" valueType="boolean"/>
+							<option id="xm4.compiler.optimization.-moptimizer-file.1547144280" name="Function optimizations enabled" superClass="xm4.compiler.optimization.-moptimizer-file" value="true" valueType="boolean"/>
+							<option id="com.ceva.toolchain.xm4.exe.compiler.cpp.option.debug_info.debug.322405047" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.option.debug_info.debug" value="xm4.compiler.debug.debug_info.empty" valueType="enumerated"/>
 							<inputType id="com.ceva.toolchain.xm4.compiler.c.input.751834256" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
 							<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.89825003" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
 						</tool>

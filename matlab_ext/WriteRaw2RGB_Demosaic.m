@@ -5,8 +5,8 @@ function WriteRaw2RGB_Demosaic(RAW, bcm, blk, gain, filename)
 
 %{1
 gains = ones(4,1);
-gains(strfind(bcm,'R')) = 1.8;
-gains(strfind(bcm,'B')) = 2.2;
+gains(strfind(bcm,'R')) = 1.0;
+gains(strfind(bcm,'B')) = 1.0;
 
 %
 RAW2 = max(RAW - blk, 0);
