@@ -2,8 +2,7 @@
 
 
 #include <string.h>
-#include "DebugFiles.h"
-#include "rk_bayerwdr.h"
+#include "rk_bayerhdr.h"
 
 #if HDR_DEBUG_ENABLE
 static int x_pos ;
@@ -91,24 +90,6 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 						#else
 							 uint16_t *p_u16Dst);		//<<! [out] HDR out 16bit,have not do WDR.
 						#endif
-
-
-void Max3x3AndBilinear(uint8_t  	*p_u8Weight, 	//<<! [in] 0-255 scale tab.
-							uint16_t 	*p_u16ImageL_S,	//<<! [in] long and short image[block32x64]
-							uint16_t 	*p_u16PrevThumb,	//<<! [in] previous frame thumb image for WDR scale.
-							int32_t 	weightStep, 		//<<! [in] weight stride which add padding.
-							int32_t 	imageStep, 		//<<! [in] 16 align
-							int32_t 	u32Rows, 			//<<! [in] 
-							int32_t 	u32Cols,			//<<! [in]  
-						#if HDR_DEBUG_ENABLE
-							uint16_t 	*p_u16Dst,
-							uint8_t  	*p_u8FilterW,
-							int 		xPos,
-							int 		yPos);
-						#else
-							uint16_t 	*p_u16Dst);		//<<! [out] HDR out 16bit,have not do WDR.
-						#endif
-
 
 void zigzagDebayer(	uint16_t *p_u16Src, 
 						uint16_t *p_u16Tab, 
@@ -258,12 +239,6 @@ void hdrprocess_sony_raw(uint16_t 	*src,
 			x_pos = x_prev/HDR_BLOCK_W;
 		#endif
 			// Fill Blockdata
-		    /*CopyBlockData(	src+x+y*W, 	
-						    g_HdrBlkBuf[buffIdx]+4*HDR_SRC_STRIDE+2, 
-						    min_(HDR_BLOCK_W,W-x),
-						    min_(HDR_BLOCK_H,H-y), 
-						    W*2,
-						    HDR_SRC_STRIDE*2);*/
 
 			dma_2Dtransf(g_HdrBlkBuf[buffIdx]+2,
 						 src+x+y*W	,
@@ -275,12 +250,6 @@ void hdrprocess_sony_raw(uint16_t 	*src,
 						 
 
 		    // Fill 4-TopExternalRows from RowBuf
-		    /*CopyBlockData(	g_HdrRowBuf+x,
-						    g_HdrBlkBuf[buffIdx],                
-						    HDR_SRC_STRIDE, 
-						    4,    
-						    4096*2, 
-						    HDR_SRC_STRIDE*2);*/
 
 			dma_2Dtransf(	g_HdrBlkBuf[buffIdx],
 							g_HdrRowBuf+x,
@@ -292,12 +261,6 @@ void hdrprocess_sony_raw(uint16_t 	*src,
 			
 
 		    // Fill 2-LeftCol from ColBuf
-		    /*CopyBlockData(	g_HdrColBuf,  
-						    g_HdrBlkBuf[buffIdx]+4*HDR_SRC_STRIDE,   
-						    2,     
-						    HDR_BLOCK_H, 	 
-						    2*2, 
-						    HDR_SRC_STRIDE*2);*/
 
 			dma_2Dtransf(	g_HdrBlkBuf[buffIdx],
 							g_HdrColBuf	,
@@ -309,11 +272,7 @@ void hdrprocess_sony_raw(uint16_t 	*src,
 			
 
 		    // Update 2-RightCol back.
-		    /*CopyBlockData(	g_HdrBlkBuf[buffIdx]+5*HDR_SRC_STRIDE-4, 
-						    g_HdrColBuf,  
-						    2, 	  
-						    HDR_BLOCK_H,   
-						    HDR_SRC_STRIDE*2, 2*2);*/
+
 			dma_2Dtransf(	g_HdrColBuf,
 							g_HdrBlkBuf[buffIdx]+5*HDR_SRC_STRIDE-4	,
 							0,
@@ -333,13 +292,6 @@ void hdrprocess_sony_raw(uint16_t 	*src,
 		    else
 		    {
 		        // Fill 2-RightCol from AnotherBuf
-				/*CopyBlockData(g_HdrBlkBuf[(buffIdx+1)&1] + 4*HDR_SRC_STRIDE + 2, 
-				              g_HdrBlkBuf[buffIdx] + 5*HDR_SRC_STRIDE - 2, 
-				              2, 
-				              HDR_BLOCK_H, 
-				              HDR_SRC_STRIDE*2, 
-				              HDR_SRC_STRIDE*2);*/
-
 				dma_2Dtransf(	g_HdrBlkBuf[buffIdx] - 2, 
 								g_HdrBlkBuf[(buffIdx+1)&1] + 4*HDR_SRC_STRIDE + 2, 
 								5, 
@@ -350,12 +302,6 @@ void hdrprocess_sony_raw(uint16_t 	*src,
 				
 
 				// Update 4-BottomRows to RowBuf, waiting bottom-right corner data.
-				/*CopyBlockData(g_HdrBlkBuf[buffIdx] + HDR_BLOCK_H*HDR_SRC_STRIDE, 
-				              g_HdrRowBuf + x_prev, 
-				              HDR_SRC_STRIDE, 
-				              4, 
-				              HDR_SRC_STRIDE*2, 
-				              4096*2);*/
 				dma_2Dtransf(	g_HdrRowBuf + x_prev, 
 								g_HdrBlkBuf[buffIdx] + HDR_BLOCK_H*HDR_SRC_STRIDE, 
 								0, 

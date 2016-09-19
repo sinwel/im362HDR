@@ -27,6 +27,7 @@
 									<listOptionValue builtIn="false" value="__XM4__"/>
 								</option>
 								<option id="xm4.compiler.general.-save-temps.1998349403" name="Save all temporary files (-save-temps)" superClass="xm4.compiler.general.-save-temps" value="true" valueType="boolean"/>
+								<option id="xm4.compiler.code_generation.-INLINE.338604601" name="Inline mode" superClass="xm4.compiler.code_generation.-INLINE" value="xm4.compiler.code_generation.-INLINE.off" valueType="enumerated"/>
 								<inputType id="com.ceva.toolchain.xm4.compiler.c.input.945337434" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
 								<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.810025640" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
 							</tool>
@@ -56,20 +57,47 @@
 							<tool id="com.ceva.toolchain.xm4.libmanager.169224741" name="CEVA-XM4 Library Manager" superClass="com.ceva.toolchain.xm4.libmanager"/>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="com.ceva.toolchain.xm4.exe.configuration.debug.595393154.1948651524" name="zigZagBayerInterpo.cpp" rcbsApplicability="disable" resourcePath="src/zigZagBayerInterpo.cpp" toolsToInvoke="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.152327467">
-						<tool id="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.152327467" name="CEVA-XM4 C/C++ Compiler" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521">
-							<option id="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug.2078884937" name="Speed optimization level" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug" value="xm4.compiler.cycle_count_optimization_level.-O4" valueType="enumerated"/>
-							<option id="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict.1441870208" name="Distinct pointers variables are NOT aliased (-OPT:alias=restrict)" superClass="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict" value="true" valueType="boolean"/>
-							<option id="xm4.compiler.optimization.-moptimizer-file.1547144280" name="Function optimizations enabled" superClass="xm4.compiler.optimization.-moptimizer-file" value="true" valueType="boolean"/>
-							<option id="com.ceva.toolchain.xm4.exe.compiler.cpp.option.debug_info.debug.322405047" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.option.debug_info.debug" value="xm4.compiler.debug.debug_info.empty" valueType="enumerated"/>
-							<inputType id="com.ceva.toolchain.xm4.compiler.c.input.751834256" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
-							<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.89825003" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
+					<fileInfo id="com.ceva.toolchain.xm4.exe.configuration.debug.595393154.1423943029" name="hdr_process.cpp" rcbsApplicability="disable" resourcePath="src/hdr_process.cpp" toolsToInvoke="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.1864491456">
+						<tool id="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.1864491456" name="CEVA-XM4 C/C++ Compiler" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521">
+							<option id="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug.763481192" name="Speed optimization level" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug" value="xm4.compiler.cycle_count_optimization_level.-O0" valueType="enumerated"/>
+							<option id="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict.474959794" name="Distinct pointers variables are NOT aliased (-OPT:alias=restrict)" superClass="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict" value="true" valueType="boolean"/>
+							<inputType id="com.ceva.toolchain.xm4.compiler.c.input.939326185" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
+							<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.1989241282" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
 						</tool>
-						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.63964130" name="Resource Custom Build Step">
-							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.1241138566" name="Resource Custom Build Step Input Type">
+						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.1110556544" name="Resource Custom Build Step">
+							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.1703230811" name="Resource Custom Build Step Input Type">
 								<additionalInput kind="additionalinputdependency" paths=""/>
 							</inputType>
-							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.1616732231" name="Resource Custom Build Step Output Type"/>
+							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.2072403471" name="Resource Custom Build Step Output Type"/>
+						</tool>
+					</fileInfo>
+					<fileInfo id="com.ceva.toolchain.xm4.exe.configuration.debug.595393154.1593960457" name="hdr_tonning.cpp" rcbsApplicability="disable" resourcePath="src/hdr_tonning.cpp" toolsToInvoke="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.1924141266">
+						<tool id="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.1924141266" name="CEVA-XM4 C/C++ Compiler" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521">
+							<option id="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict.1400868198" name="Distinct pointers variables are NOT aliased (-OPT:alias=restrict)" superClass="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict" value="true" valueType="boolean"/>
+							<option id="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug.359383385" name="Speed optimization level" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug" value="xm4.compiler.cycle_count_optimization_level.-O4" valueType="enumerated"/>
+							<inputType id="com.ceva.toolchain.xm4.compiler.c.input.855532294" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
+							<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.1172881685" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
+						</tool>
+						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.6078292" name="Resource Custom Build Step">
+							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.184671336" name="Resource Custom Build Step Input Type">
+								<additionalInput kind="additionalinputdependency" paths=""/>
+							</inputType>
+							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.1927976775" name="Resource Custom Build Step Output Type"/>
+						</tool>
+					</fileInfo>
+					<fileInfo id="com.ceva.toolchain.xm4.exe.configuration.debug.595393154.718364699" name="hdr_zigzag.cpp" rcbsApplicability="disable" resourcePath="src/hdr_zigzag.cpp" toolsToInvoke="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.1483503559">
+						<tool id="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521.1483503559" name="CEVA-XM4 C/C++ Compiler" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.debug.1574150521">
+							<option id="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug.886226818" name="Speed optimization level" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.option.cycle_count_optimization_level.debug" value="xm4.compiler.cycle_count_optimization_level.-O3" valueType="enumerated"/>
+							<option id="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict.380360540" name="Distinct pointers variables are NOT aliased (-OPT:alias=restrict)" superClass="xm4.compiler.code_generation.memory_aliasing.-OPTalias_restrict" value="true" valueType="boolean"/>
+							<option id="com.ceva.toolchain.xm4.exe.compiler.cpp.option.debug_info.debug.55995893" name="Generate debug info" superClass="com.ceva.toolchain.xm4.exe.compiler.cpp.option.debug_info.debug" value="xm4.compiler.debug.debug_info.empty" valueType="enumerated"/>
+							<inputType id="com.ceva.toolchain.xm4.compiler.c.input.1883263242" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
+							<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.1627144439" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
+						</tool>
+						<tool customBuildStep="true" id="org.eclipse.cdt.managedbuilder.ui.rcbs.1100661782" name="Resource Custom Build Step">
+							<inputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.inputtype.2065774293" name="Resource Custom Build Step Input Type">
+								<additionalInput kind="additionalinputdependency" paths=""/>
+							</inputType>
+							<outputType id="org.eclipse.cdt.managedbuilder.ui.rcbs.outputtype.1085880828" name="Resource Custom Build Step Output Type"/>
 						</tool>
 					</fileInfo>
 					<sourceEntries>
@@ -90,10 +118,6 @@
 				</externalSettings>
 			</storageModule>
 			<storageModule moduleId="com.ceva.toolchain.core.functions">
-				<Source name="zigZagBayerInterpo.cpp" path="src/zigZagBayerInterpo.cpp" sizeOptValue="xm4.compiler.code_size_optimization_level.-Os0" speedOptValue="xm4.compiler.cycle_count_optimization_level.-O4">
-					<Function name="zigzagDebayer" sizeOptValue="xm4.compiler.code_size_optimization_level.-Os3" speedOptValue="xm4.compiler.cycle_count_optimization_level.-O4"/>
-					<Function name="Max3x3AndBilinear" sizeOptValue="xm4.compiler.code_size_optimization_level.-Os3" speedOptValue="xm4.compiler.cycle_count_optimization_level.-O4"/>
-				</Source>
 			</storageModule>
 		</cconfiguration>
 		<cconfiguration id="com.ceva.toolchain.xm4.exe.configuration.release.1799060453">

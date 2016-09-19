@@ -25,35 +25,8 @@
 ////-------- Header files
 // 
 #include "rk_typedef.h"                 // Type definition
-#include "rk_global.h"                  // Global definition
 
-
-#include <assert.h>
-#include <vec-c.h>
-#include "XM4_defines.h" 
-#ifdef __XM4__
-#include "profiler.h"
-#include <asm-dsp.h>
-#endif
-
-#define     HDR_BLOCK_W	    64
-#define     HDR_BLOCK_H	    32
-#define     HDR_PADDING 	2
-#define	    HDR_SRC_STRIDE (HDR_BLOCK_W+2*HDR_PADDING)
-
-
-#define     CEVA_VECC                           1
-#ifdef  WIN32
-#define DEBUG_VECC		    1
-#else
-#define DEBUG_VECC		    0
-#endif
-
- 
-
-#define max_(a,b) ((a) > (b) ? (a) : (b))
-#define min_(a,b) ((a) < (b) ? (a) : (b))
-
+#define     HDR_DEBUG_ENABLE          1
 
 #ifdef WIN32
 #define PRINT_C_GROUP(namestr,var,start_pos,num,fp,...) \
@@ -99,15 +72,16 @@
 
 #endif
 
+void writeFile(uint8_t *data, int cols, int rows, int stride, char* FileName);
 
-void writeFile(RK_U16 *data, int Num, char* FileName);
-
-void writeBinFile(RK_U16 *data, int Num, char* FileName);
+void writeFile(uint16_t *data, int cols, int rows, int stride, char* FileName);
+void writeBinFile(uint16_t *data, int Num, char* FileName);
 
 // Copy Block Data
-int CopyBlockData(RK_U16* pSrc, RK_U16* pDst, int nWid, int nHgt, int nSrcStride, int nDstStride);
+int CopyBlockData(uint16_t* pSrc, uint16_t* pDst, int nWid, int nHgt, int nSrcStride, int nDstStride);
 
 #endif // _RK_DEBUG_H
+
 
 
 

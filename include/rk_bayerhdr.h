@@ -32,12 +32,15 @@
 //////////////////////////////////////////////////////////////////////////
 ////-------- Header files
 // 
-#include "rk_typedef.h"                 // Type definition
-#include "rk_global.h"                  // Global definition
-
 #include <assert.h>
 #include <vec-c.h>
-#include "XM4_defines.h" 
+#include "rk_typedef.h"
+#include "rk_global.h" 
+#include "profiler.h"
+#include "XM4_defines.h"
+
+#include "DebugFiles.h"
+
 #ifdef __XM4__
 #include "profiler.h"
 #include <asm-dsp.h>
@@ -62,16 +65,8 @@
 #define     CONNECT_LUT         0
 #define     CONNECT_WDR         0
 
-#define     CEVA_VECC           1
+#define     HDR_VECC           1
 
-
-#ifdef  WIN32
-#define     DEBUG_VECC		    1
-#else
-#define     DEBUG_VECC		    0
-#endif
-
- 
 
 #define max_(a,b) ((a) > (b) ? (a) : (b))
 #define min_(a,b) ((a) < (b) ? (a) : (b))

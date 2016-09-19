@@ -241,12 +241,13 @@ option(ENABLE_APP "Build standalone imx362_xm4 application" ON)
 if(ENABLE_APP)
    
 	file(GLOB preIspFiles   src/main.cpp
-							src/zigZagBayerInterpo.cpp
+							src/hdr_zigzag.cpp
+							src/hdr_tonning.cpp
 							src/hdr_process.cpp
 							src/DebugFiles.cpp
 							include/DebugFiles.h
 							include/XM4_defines.h
-							include/rk_bayerwdr.h						
+							include/rk_bayerhdr.h						
 							include/rk_global.h	
 							include/rk_typedef.h)
 	source_group(PreISP FILES ${preIspFiles})
