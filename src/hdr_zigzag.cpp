@@ -39,10 +39,16 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
 #endif
 	 uint8_t log2_expTimes = 3;// log2(8)	
-	uint16_t i,j,SecMask,blacklevel=64;
+	uint16_t i,j,blacklevel=64;
+	uint16_t SecMaskR,SecMaskB,SecMaskG0,SecMaskG1;
 	ushort16 vG0,vR0,vB1,vG1,vG2,vR2,vB3,vG3,vG4,vR4,vB5,vG5,vG6,vR6,vB7,vG7;
 	ushort16 vGR0,vBG1,vGR2,vBG3,vGR4,vBG5,vGR6,vBG7;
-	ushort16 v0,v1,v2,v3,v4,v5,v6,v7,v8,v9,v10,v11,v12,v13;
+	ushort16 v0,v1,v2,v3,v4,v5,v6,v7;
+	ushort16 vRTmp0,vRTmp1,vRTmp2,vRTmp3;
+	ushort16 vBTmp0,vBTmp1,vBTmp2,vBTmp3;
+	ushort16 vG0Tmp0,vG0Tmp1,vG0Tmp2,vG0Tmp3;
+	ushort16 vG1Tmp0,vG1Tmp1,vG1Tmp2,vG1Tmp3;
+	
 	uchar16  vt0,vt1,vt2,vt3,vt4,vt5,vt6,vt7;
 	ushort16 vBayerL0Seg0,vBayerL1Seg0,vBayerL2Seg0,vBayerL3Seg0;
 	ushort16 vBayerL0Seg1,vBayerL1Seg1,vBayerL2Seg1,vBayerL3Seg1;	
@@ -214,73 +220,70 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			//vR0offset	= (ushort16)vperm(vR0,vGR0,vcfgAdjRed1);
 			vR4offset	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed1);
 			//vR2offset_	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed2);
-#if CODE_SCATTER
-			v0			= vabssub(vR0offset, vR4offset);
-			v1			= vabssub(vR2, vR2offset_);
-			v2			= (ushort16)vadd(vR0offset, vR4offset);
-			v3			= (ushort16)vadd(vR2, vR2offset_); 
-			SecMask 	= vcmp(lt,v0,v1);
-			vRL0best	= vselect(v2,v3,SecMask);
-#else
-			SecMask 	= vcmp(lt,vabssub(vR0offset, vR4offset),vabssub(vR2, vR2offset_));
-			vRL0best 	= vselect( (ushort16)vadd(vR0offset, vR4offset), (ushort16)vadd(vR2, vR2offset_), SecMask); 
-#endif
 
-			//PRINT_CEVA_VRF("vRL0best", vRL0best, stderr);
-
-			// -------------b-----------------
-			// abs(B1-B5),abs(B3 - B3+4)
-			// ----
 			//vB1offset	= (ushort16)vperm(vB1,vBG1,vcfgAdjBlu1);
 			vB5offset	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
 			//vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu2);
-#if CODE_SCATTER
-			v0			= vabssub(vB1offset, vB5offset);
-			v1			= vabssub(vB3, vB3offset_);
-			v2			= (ushort16)vadd(vB1offset, vB5offset);
-			v3			= (ushort16)vadd(vB3, vB3offset_); 
-			SecMask 	= vcmp(lt,v0,v1);
-			vBL0best	= vselect(v2,v3,SecMask);
-#else
-			
-			SecMask 	= vcmp(lt,vabssub(vB1offset, vB5offset),vabssub(vB3, vB3offset_));
-			vBL0best 	= vselect( (ushort16)vadd(vB1offset, vB5offset), (ushort16)vadd(vB3, vB3offset_), SecMask); 
-#endif
-			//PRINT_CEVA_VRF("vBL0best", vBL0best, stderr);
-			// -------------G-----------------
-			// abs(G1-G3),abs(G2 - G4)
-			//  G1  G3 
 			//vG1offset	= (ushort16)vperm(vG1,vBG1,vcfgAdjRed1);
 			//vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
-#if CODE_SCATTER
-			v0			= vabssub(vG1, vG3offset);
-			v1			= vabssub(vG3, vG1offset);
-			v2			= (ushort16)vadd(vG1, vG3offset);
-			v3			= (ushort16)vadd(vG3, vG1offset); 
-			SecMask 	= vcmp(lt,v0,v1);
-			vG0L0best	= vselect(v2,v3,SecMask);
-#else
-			SecMask		= vcmp(lt,vabssub(vG1, vG3offset),vabssub(vG3, vG1offset));
-			vG0L0best 	= vselect( (ushort16)vadd(vG1, vG3offset), (ushort16)vadd(vG3, vG1offset), SecMask); 
-#endif
-			//PRINT_CEVA_VRF("vG0L0best", vG0L0best, stderr);
-
-			//  G2  G4  
 			//vG2offset	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
 			vG4offset	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre1);
 			//vG2offset_	= (ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
 			vG4offset_	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre2);
-#if CODE_SCATTER
-			v0			= vabssub(vG2offset, vG4offset_);
-			v1			= vabssub(vG4offset, vG2offset_);
-			v2			= (ushort16)vadd(vG2offset, vG4offset_);
-			v3			= (ushort16)vadd(vG4offset, vG2offset_); 
-			SecMask 	= vcmp(lt,v0,v1);
-			vG1L0best	= vselect(v2,v3,SecMask);
-#else
-			SecMask		= vcmp(lt,vabssub(vG2offset, vG4offset_),vabssub(vG4offset, vG2offset_));
-			vG1L0best 	= vselect( (ushort16)vadd(vG2offset, vG4offset_), (ushort16)vadd(vG4offset, vG2offset_), SecMask); 
-#endif
+
+			
+		#if CODE_SCATTER
+			vRTmp0		= vabssub(vR0offset, vR4offset);
+			vBTmp0		= vabssub(vB1offset, vB5offset);			
+			vG0Tmp0		= vabssub(vG1, vG3offset);		
+			vG1Tmp0		= vabssub(vG2offset, vG4offset_);		
+
+			vRTmp1		= vabssub(vR2, vR2offset_);
+			vBTmp1		= vabssub(vB3, vB3offset_);		
+			vG0Tmp1		= vabssub(vG3, vG1offset);		
+			vG1Tmp1		= vabssub(vG4offset, vG2offset_);
+
+
+			vRTmp2		= (ushort16)vadd(vR0offset, vR4offset);
+			vBTmp2		= (ushort16)vadd(vB1offset, vB5offset);			
+			vG0Tmp2		= (ushort16)vadd(vG1, vG3offset);
+			vG1Tmp2		= (ushort16)vadd(vG2offset, vG4offset_);
+
+
+			vRTmp3		= (ushort16)vadd(vR2, vR2offset_); 
+			vBTmp3		= (ushort16)vadd(vB3, vB3offset_); 
+			vG0Tmp3		= (ushort16)vadd(vG3, vG1offset); 
+			vG1Tmp3		= (ushort16)vadd(vG4offset, vG2offset_); 
+
+
+			SecMaskR 	= vcmp(lt,vRTmp0,vRTmp1);
+			SecMaskB 	= vcmp(lt,vBTmp0,vBTmp1);
+			SecMaskG0 	= vcmp(lt,vG0Tmp0,vG0Tmp1);
+			SecMaskG1 	= vcmp(lt,vG1Tmp0,vG1Tmp1);
+
+
+			vRL0best	= vselect(vRTmp2,vRTmp3,SecMaskR);
+			vBL0best	= vselect(vBTmp2,vBTmp3,SecMaskB);		
+			vG0L0best	= vselect(vG0Tmp2,vG0Tmp3,SecMaskG0);
+			vG1L0best	= vselect(vG1Tmp2,vG1Tmp3,SecMaskG1);
+
+		#else
+			SecMaskR 	= vcmp(lt,vabssub(vR0offset, vR4offset),vabssub(vR2, vR2offset_));
+			SecMaskB 	= vcmp(lt,vabssub(vB1offset, vB5offset),vabssub(vB3, vB3offset_));
+			SecMaskG0	= vcmp(lt,vabssub(vG1, vG3offset),vabssub(vG3, vG1offset));
+			SecMaskG1	= vcmp(lt,vabssub(vG2offset, vG4offset_),vabssub(vG4offset, vG2offset_));
+
+			vRL0best 	= vselect( (ushort16)vadd(vR0offset, vR4offset), (ushort16)vadd(vR2, vR2offset_), SecMaskR); 
+			vBL0best 	= vselect( (ushort16)vadd(vB1offset, vB5offset), (ushort16)vadd(vB3, vB3offset_), SecMaskB); 
+			vG0L0best 	= vselect( (ushort16)vadd(vG1, vG3offset), (ushort16)vadd(vG3, vG1offset), SecMaskG0); 
+			vG1L0best 	= vselect( (ushort16)vadd(vG2offset, vG4offset_), (ushort16)vadd(vG4offset, vG2offset_), SecMaskG1); 
+		#endif
+
+
+
+
+
+
 			//PRINT_CEVA_VRF("vG1L0best", vG1L0best, stderr);
 			// ========= line 1 GRBG ==============
 			// -------------r-----------------
@@ -289,73 +292,69 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			//vR2offset	= (ushort16)vperm(vR2,vGR2,vcfgAdjRed1);
 			vR6offset	= (ushort16)vperm(vR6,vGR6,vcfgAdjRed1);
 			vR4offset_	= (ushort16)vperm(vR4,vGR4,vcfgAdjRed2);
-#if CODE_SCATTER
-			v0			= vabssub(vR2offset, vR6offset);
-			v1			= vabssub(vR4, vR4offset_);
-			v2			= (ushort16)vadd(vR2offset, vR6offset);
-			v3			= (ushort16)vadd(vR4, vR4offset_); 
-			SecMask 	= vcmp(lt,v0,v1);
-			vRL1best	= vselect(v2,v3,SecMask);
-#else
-			SecMask 	= vcmp(lt,vabssub(vR2offset, vR6offset),vabssub(vR4, vR4offset_));
-			vRL1best 	= vselect( (ushort16)vadd(vR2offset, vR6offset), (ushort16)vadd(vR4, vR4offset_), SecMask); 
-#endif
-			//PRINT_CEVA_VRF("vRL1best", vRL1best, stderr);
-
 			// -------------b-----------------
 			// abs(B3-B7),abs(B5 - B5+4)
 			// ----
 			//vB3offset	= (ushort16)vperm(vB3,vBG3,vcfgAdjBlu1);
 			vB7offset	= (ushort16)vperm(vB7,vBG7,vcfgAdjBlu1);
 			vB5offset_	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu2);
-#if CODE_SCATTER
-			v0			= vabssub(vB3offset, vB7offset);
-			v1			= vabssub(vB5, vB5offset_);
-			v2			= (ushort16)vadd(vB3offset, vB7offset);
-			v3			= (ushort16)vadd(vB5, vB5offset_); 
-			SecMask 	= vcmp(lt,v0,v1);
-			vBL1best	= vselect(v2,v3,SecMask);
-#else
-			SecMask 	= vcmp(lt,vabssub(vB3offset, vB7offset),vabssub(vB5, vB5offset_));
-			vBL1best 	= vselect( (ushort16)vadd(vB3offset, vB7offset), (ushort16)vadd(vB5, vB5offset_), SecMask); 
-#endif
-			//PRINT_CEVA_VRF("vBL1best", vBL1best, stderr);
-
-
 			// -------------G-----------------
 			// abs(G3-G5),abs(G4 - G6)
 			//  G3  G5 
 			vG5offset	= (ushort16)vperm(vG5,vBG5,vcfgAdjRed1);
 			//vG3offset	= (ushort16)vperm(vG3,vBG3,vcfgAdjRed1);
-#if CODE_SCATTER
-			v0			= vabssub(vG3, vG5offset);
-			v1			= vabssub(vG5, vG3offset);
-			v2			= (ushort16)vadd(vG3, vG5offset);
-			v3			= (ushort16)vadd(vG5, vG3offset); 
-			SecMask 	= vcmp(lt,v0,v1);
-			vG0L1best	= vselect(v2,v3,SecMask);
-#else
-			
-			SecMask		= vcmp(lt,vabssub(vG3, vG5offset),vabssub(vG5, vG3offset));
-			vG0L1best 	= vselect( (ushort16)vadd(vG3, vG5offset), (ushort16)vadd(vG5, vG3offset), SecMask); 
-#endif
 			//PRINT_CEVA_VRF("vG0L1best", vG0L1best, stderr);
 			//  G4   G6 
 			vG6offset	= (ushort16)vperm(vG6,vGR6,vcfgAdjGre1);
 			//vG4offset	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre1);
 			vG6offset_	= (ushort16)vperm(vG6,vGR6,vcfgAdjGre2);
 			//vG4offset_	= (ushort16)vperm(vG4,vGR4,vcfgAdjGre2);
-#if CODE_SCATTER
-			v0			= vabssub(vG4offset, vG6offset_);
-			v1			= vabssub(vG6offset, vG4offset_);
-			v2			= (ushort16)vadd(vG4offset, vG6offset_);
-			v3			= (ushort16)vadd(vG6offset, vG4offset_); 
-			SecMask 	= vcmp(lt,v0,v1);
-			vG1L1best	= vselect(v2,v3,SecMask);
-#else
-			SecMask		= vcmp(lt,vabssub(vG4offset, vG6offset_),vabssub(vG6offset, vG4offset_));
-			vG1L1best 	= vselect( (ushort16)vadd(vG4offset, vG6offset_), (ushort16)vadd(vG6offset, vG4offset_), SecMask); 
-#endif
+			
+		#if CODE_SCATTER
+
+			vRTmp0		  	= vabssub(vR2offset, vR6offset);       
+			vBTmp0		  	= vabssub(vB3offset, vB7offset);		
+			vG0Tmp0			= vabssub(vG3, vG5offset);		
+			vG1Tmp0			= vabssub(vG4offset, vG6offset_);						
+			     
+			vRTmp1		  	= vabssub(vR4, vR4offset_);
+			vBTmp1		  	= vabssub(vB5, vB5offset_);			
+			vG0Tmp1			= vabssub(vG5, vG3offset);		
+			vG1Tmp1			= vabssub(vG6offset, vG4offset_);						
+			     
+			vRTmp2		  	= (ushort16)vadd(vR2offset, vR6offset);
+			vBTmp2		  	= (ushort16)vadd(vB3offset, vB7offset);			
+			vG0Tmp2			= (ushort16)vadd(vG3, vG5offset);			
+			vG1Tmp2			= (ushort16)vadd(vG4offset, vG6offset_);
+			     
+			vRTmp3		  	= (ushort16)vadd(vR4, vR4offset_); 
+			vBTmp3		  	= (ushort16)vadd(vB5, vB5offset_); 			
+			vG0Tmp3			= (ushort16)vadd(vG5, vG3offset); 			
+			vG1Tmp3			= (ushort16)vadd(vG6offset, vG4offset_); 			
+					
+			SecMaskR 		= vcmp(lt,vRTmp0,vRTmp1		);
+			SecMaskB 		= vcmp(lt,vBTmp0,vBTmp1		);
+			SecMaskG0		= vcmp(lt,vG0Tmp0,vG0Tmp1	);
+			SecMaskG1 		= vcmp(lt,vG1Tmp0,vG1Tmp1	);				
+					
+			vRL1best		= vselect(vRTmp2,	vRTmp3,	SecMaskR);
+			vBL1best		= vselect(vBTmp2,	vBTmp3,	SecMaskB);
+			vG0L1best		= vselect(vG0Tmp2,vG0Tmp3,SecMaskG0);
+			vG1L1best		= vselect(vG1Tmp2,vG1Tmp3,SecMaskG1);
+
+		#else
+			SecMaskR 	= vcmp(lt,vabssub(vR2offset, vR6offset),vabssub(vR4, vR4offset_));
+			SecMaskB 	= vcmp(lt,vabssub(vB3offset, vB7offset),vabssub(vB5, vB5offset_));
+			SecMaskG0	= vcmp(lt,vabssub(vG3, vG5offset),vabssub(vG5, vG3offset));
+			SecMaskG1	= vcmp(lt,vabssub(vG4offset, vG6offset_),vabssub(vG6offset, vG4offset_));
+
+			vRL1best 	= vselect( (ushort16)vadd(vR2offset, vR6offset), (ushort16)vadd(vR4, vR4offset_), SecMaskR); 
+			vBL1best 	= vselect( (ushort16)vadd(vB3offset, vB7offset), (ushort16)vadd(vB5, vB5offset_), SecMaskB); 
+			vG0L1best 	= vselect( (ushort16)vadd(vG3, vG5offset), (ushort16)vadd(vG5, vG3offset), SecMaskG0); 
+			vG1L1best 	= vselect( (ushort16)vadd(vG4offset, vG6offset_), (ushort16)vadd(vG6offset, vG4offset_), SecMaskG1); 
+
+		#endif
+
 			//PRINT_CEVA_VRF("vG1L1best", vG1L1best, stderr);
 
 			// ------------------------------------------
@@ -364,69 +363,96 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			// ------------------------------------------
 			// line 0 GRBG
 			//vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
-			vRL0best	= (ushort16)vshiftr(vRL0best, (unsigned char)1);// times// interpoaltion		
+			vRL0best	= (ushort16)vshiftr(vRL0best, 	(unsigned char)1);// times// interpoaltion		
+			vBL0best	= (ushort16)vshiftr(vBL0best, 	(unsigned char)1);// times// interpoaltion		
+			vG0L0best	= (ushort16)vshiftr(vG0L0best, 	(unsigned char)1);// times// interpoaltion		
+			vG1L0best	= (ushort16)vshiftr(vG1L0best, 	(unsigned char)1);// times// interpoaltion		
+
 			vRL0Long	= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
-
-			vRL0Short	= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
-			vRL0Short	= (ushort16)vshiftl(vRL0Short, log2_expTimes);// times
-
-
-
-			//vB3packed	= vB3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
-			vBL0best	= (ushort16)vshiftr(vBL0best, (unsigned char)1);// times// interpoaltion		
 			vBL0Long	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_LONG_PATTERN);
-
-			vBL0Short	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_SHORT_PATTERN);
-			vBL0Short	= (ushort16)vshiftl(vBL0Short, log2_expTimes);// times
-
-
-
-			//vG2packed	= vG2offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
-			vG0L0best	= (ushort16)vshiftr(vG0L0best, (unsigned char)1);// times// interpoaltion		
 			vG0L0Long	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_LONG_PATTERN);
-
-			vG0L0Short	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_SHORT_PATTERN);
-			vG0L0Short	= (ushort16)vshiftl(vG0L0Short, log2_expTimes);// times
-
-
-			//vG3packed	= vG3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
-			vG1L0best	= (ushort16)vshiftr(vG1L0best, (unsigned char)1);// times// interpoaltion		
 			vG1L0Long	= vselect(vG3offset/*vG3packed*/, vG1L0best, G_SHORT_PATTERN);
 
+
+			vRL0Short	= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
+			vBL0Short	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_SHORT_PATTERN);
+			vG0L0Short	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_SHORT_PATTERN);
 			vG1L0Short	= vselect(vG3offset/*vG3packed*/, vG1L0best, G_LONG_PATTERN);
+
+			vRL0Short	= (ushort16)vshiftl(vRL0Short, log2_expTimes);// times
+			vBL0Short	= (ushort16)vshiftl(vBL0Short, log2_expTimes);// times
+			vG0L0Short	= (ushort16)vshiftl(vG0L0Short, log2_expTimes);// times
 			vG1L0Short	= (ushort16)vshiftl(vG1L0Short, log2_expTimes);// times
+
+			v0	= vabssub(vG0L0Long, vG0L0Short);
+			v1	= vabssub(vRL0Long,  vRL0Short);
+			v2	= vabssub(vBL0Long,  vBL0Short);
+			v3	= vabssub(vG1L0Long, vG1L0Short);
+
+			v0 	= (ushort16)vshiftl(v0 , 1); 
+			v1 	= (ushort16)vshiftl(v1 , 1); 
+			v2	= (ushort16)vshiftl(v2 , 1); 
+			v3	= (ushort16)vshiftl(v3 , 1);
+
+			v0 	= vmin(v0 , (ushort16) normValue);         
+			v1 	= vmin(v1 , (ushort16) normValue);         
+			v2	= vmin(v2 , (ushort16) normValue);         
+			v3	= vmin(v3 , (ushort16) normValue);         
+
+			vpst(v0, 	pScaleL0G0,  vOffsetGap2);
+			vpst(v1,	pScaleL0Red, vOffsetGap2);
+			vpst(v2, 	pScaleL0Blu, vOffsetGap2);
+			vpst(v3, 	pScaleL0G1,  vOffsetGap2);
+
+
 
 
 			// line 1 GRBG
 			vR4packed	= (ushort16)vperm(vR4,vGR4,vcfgAdjRedPack); // orignal
-			vRL1best	= (ushort16)vshiftr(vRL1best, (unsigned char)1);// times// interpoaltion		
-			vRL1Long	= vselect(vR4packed, vRL1best, R_B_SHORT_PATTERN);
-
-			vRL1Short	= vselect(vR4packed, vRL1best, R_B_LONG_PATTERN);
-			vRL1Short	= (ushort16)vshiftl(vRL1Short, log2_expTimes);// times
-
 			vB5packed	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
+
+			vRL1best	= (ushort16)vshiftr(vRL1best, (unsigned char)1);// times// interpoaltion		
 			vBL1best	= (ushort16)vshiftr(vBL1best, (unsigned char)1);// times// interpoaltion		
-			vBL1Long	= vselect(vB5packed, vBL1best, R_B_SHORT_PATTERN );
-
-			vBL1Short	= vselect(vB5packed, vBL1best, R_B_LONG_PATTERN);
-			vBL1Short	= (ushort16)vshiftl(vBL1Short, log2_expTimes);// times
-
-			//vG4packed	= vG4offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG0L1best	= (ushort16)vshiftr(vG0L1best, (unsigned char)1);// times// interpoaltion		
-			vG0L1Long	= vselect(vG4offset/*vG4packed*/, vG0L1best, G_LONG_PATTERN);
-
-			vG0L1Short	= vselect(vG4offset/*vG4packed*/, vG0L1best, G_SHORT_PATTERN);
-			vG0L1Short	= (ushort16)vshiftl(vG0L1Short, log2_expTimes);// times
-
-
-			//vG5packed	= vG5offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG1L1best	= (ushort16)vshiftr(vG1L1best, (unsigned char)1);// times// interpoaltion		
+
+
+			vRL1Long	= vselect(vR4packed, vRL1best, R_B_SHORT_PATTERN);
+			vBL1Long	= vselect(vB5packed, vBL1best, R_B_SHORT_PATTERN );
+			vG0L1Long	= vselect(vG4offset/*vG4packed*/, vG0L1best, G_LONG_PATTERN);
 			vG1L1Long	= vselect(vG5offset/*vG5packed*/, vG1L1best, G_SHORT_PATTERN);
 
+			vRL1Short	= vselect(vR4packed, vRL1best, R_B_LONG_PATTERN);
+			vBL1Short	= vselect(vB5packed, vBL1best, R_B_LONG_PATTERN);
+			vG0L1Short	= vselect(vG4offset/*vG4packed*/, vG0L1best, G_SHORT_PATTERN);
 			vG1L1Short	= vselect(vG5offset/*vG5packed*/, vG1L0best, G_LONG_PATTERN);
+
+			vRL1Short	= (ushort16)vshiftl(vRL1Short, log2_expTimes);// times
+			vBL1Short	= (ushort16)vshiftl(vBL1Short, log2_expTimes);// times
+			vG0L1Short	= (ushort16)vshiftl(vG0L1Short, log2_expTimes);// times
 			vG1L1Short	= (ushort16)vshiftl(vG1L1Short, log2_expTimes);// times
 
+			// move the 4 line data up.
+			vR0offset	= vR4offset;		
+			vR2offset_	= (ushort16)vperm(vR6,vGR6,vcfgAdjRed2);//line 6 for Red hori data
+
+			vB1offset	= vB5offset;
+			vB3offset_	= (ushort16)vperm(vB7,vBG7,vcfgAdjBlu2);//line 6 for blue hori data
+
+			vG2offset	= vG6offset;//(ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
+			vG2offset_	= vG6offset_;//(ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
+
+			vG1offset	= (ushort16)vperm(vG5,vBG5,vcfgAdjRed1);
+			vG3offset	= (ushort16)vperm(vG7,vBG7,vcfgAdjRed1);
+
+			vR2offset	= vR6offset;//(ushort16)vperm(vR6,vGR6,vcfgAdjRed1);
+			vB3offset	= vB7offset;//(ushort16)vperm(vB7,vBG7,vcfgAdjBlu1);
+
+			vR2packed	= (ushort16)vperm(vR6,vGR6,vcfgAdjRedPack); // orignal
+			vR2			= vR6;
+			vB3			= vB7;
+			vG1			= vG5;
+			vG3			= vG7;
 
 			vpst(vRL0Long, 	pL0Red, vOffsetGap2);
 			vpst(vBL0Long,  pL0Blu, vOffsetGap2);
@@ -452,10 +478,6 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			// ------------------------------------------
 			// use difference to LUT
 			// ------------------------------------------
-			v0	= vabssub(vG0L0Long, vG0L0Short);
-			v1	= vabssub(vRL0Long,  vRL0Short);
-			v2	= vabssub(vBL0Long,  vBL0Short);
-			v3	= vabssub(vG1L0Long, vG1L0Short);
 
 			v4	= vabssub(vG0L1Long, vG0L1Short);
 			v5	= vabssub(vRL1Long,  vRL1Short);
@@ -463,30 +485,19 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			v7	= vabssub(vG1L1Long, vG1L1Short);
 
 			// scale the diff by [2^param.bits/(param.noise*param.exptimes)] = 1024/(64*8)
-			v0 	= (ushort16)vshiftl(v0 , 1); 
-			v1 	= (ushort16)vshiftl(v1 , 1); 
-			v2	= (ushort16)vshiftl(v2 , 1); 
-			v3	= (ushort16)vshiftl(v3 , 1); 
+ 
+			
 			v4 	= (ushort16)vshiftl(v4 , 1); 
 			v5 	= (ushort16)vshiftl(v5 , 1); 
 			v6	= (ushort16)vshiftl(v6 , 1); 
 			v7	= (ushort16)vshiftl(v7 , 1); 
 
 			// and min(x,ref)
-			v0 	= vmin(v0 , (ushort16) normValue);         
-			v1 	= vmin(v1 , (ushort16) normValue);         
-			v2	= vmin(v2 , (ushort16) normValue);         
-			v3	= vmin(v3 , (ushort16) normValue);         
 			v4 	= vmin(v4 , (ushort16) normValue);         
 			v5 	= vmin(v5 , (ushort16) normValue);         
 			v6	= vmin(v6 , (ushort16) normValue);         
 			v7	= vmin(v7 , (ushort16) normValue);         
 			// store the sad to DTCM.	
-			vpst(v0, 	pScaleL0G0,  vOffsetGap2);
-			vpst(v1,	pScaleL0Red, vOffsetGap2);
-			vpst(v2, 	pScaleL0Blu, vOffsetGap2);
-			vpst(v3, 	pScaleL0G1,  vOffsetGap2);
-
 			vpst(v4, 	pScaleL1G0,  vOffsetGap2);
 			vpst(v5,	pScaleL1Red, vOffsetGap2);
 			vpst(v6, 	pScaleL1Blu, vOffsetGap2);
@@ -521,27 +532,6 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			pL1G1_s	  += 4*HDR_BLOCK_W;	
 
 			
-			// move the 4 line data up.
-			vR0offset	= vR4offset;		
-			vR2offset_	= (ushort16)vperm(vR6,vGR6,vcfgAdjRed2);//line 6 for Red hori data
-
-			vB1offset	= vB5offset;
-			vB3offset_	= (ushort16)vperm(vB7,vBG7,vcfgAdjBlu2);//line 6 for blue hori data
-
-			vG2offset	= vG6offset;//(ushort16)vperm(vG2,vGR2,vcfgAdjGre1);
-			vG2offset_	= vG6offset_;//(ushort16)vperm(vG2,vGR2,vcfgAdjGre2);
-
-			vG1offset	= (ushort16)vperm(vG5,vBG5,vcfgAdjRed1);
-			vG3offset	= (ushort16)vperm(vG7,vBG7,vcfgAdjRed1);
-
-			vR2offset	= vR6offset;//(ushort16)vperm(vR6,vGR6,vcfgAdjRed1);
-			vB3offset	= vB7offset;//(ushort16)vperm(vB7,vBG7,vcfgAdjBlu1);
-
-			vR2packed	= (ushort16)vperm(vR6,vGR6,vcfgAdjRedPack); // orignal
-			vR2			= vR6;
-			vB3			= vB7;
-			vG1			= vG5;
-			vG3			= vG7;
 
 		}
 		// snd col
