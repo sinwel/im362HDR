@@ -1,7 +1,7 @@
  
 bcm        = 'GRBG'; 
 blk = 64;
-gain = 1; % 你看亮度自己设增益， 
+gain = 8; % 你看亮度自己设增益， 
 
 filename = '../data/raw_2016x1504_Out.raw';
 

@@ -59,7 +59,7 @@
 #define     R_B_SHORT_PATTERN	0XAAAA 
 #define     G_LONG_PATTERN		0XFFFF
 #define     G_SHORT_PATTERN		0X0
-#define     CONNECT_LUT         1
+#define     CONNECT_LUT         0
 #define     CONNECT_WDR         0
 
 #define     CEVA_VECC           1
