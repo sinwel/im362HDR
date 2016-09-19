@@ -26,7 +26,7 @@
 // 
 #include "rk_typedef.h"                 // Type definition
 
-#define     HDR_DEBUG_ENABLE          1
+#define     HDR_DEBUG_ENABLE          0
 
 #ifdef WIN32
 #define PRINT_C_GROUP(namestr,var,start_pos,num,fp,...) \

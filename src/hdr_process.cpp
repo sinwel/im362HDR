@@ -82,14 +82,7 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 							 uint32_t u32Rows, 			//<<! [in] 
 							 uint32_t u32Cols,			//<<! [in]  
 	 						 uint16_t normValue,
-						#if HDR_DEBUG_ENABLE
-							 uint16_t *p_u16Dst,
-							 uint16_t  *p_u8FilterW,
-							 int xPos,
-							 int yPos);
-						#else
 							 uint16_t *p_u16Dst);		//<<! [out] HDR out 16bit,have not do WDR.
-						#endif
 
 void zigzagDebayer(	uint16_t *p_u16Src, 
 						uint16_t *p_u16Tab, 
@@ -153,14 +146,8 @@ void hdr_block_process(uint16_t *pRawInBuff,
 						 validH						, 	//<<! [in] 
 						 validW						,	//<<! [in]  
  						 normValue					,
-					#if HDR_DEBUG_ENABLE
-						 pHDRoutBuff				,
-						 pWeightFilter				,
-						 x_pos						,
-						 y_pos);
-					#else
-						 pHDRoutBuff);		//<<! [out] HDR out 16bit,have not do WDR.
-					#endif
+						 pHDRoutBuff);					//<<! [out] HDR out 16bit,have not do WDR.
+
 
 #else
  	Max3x3AndBilinear(	pWeightBuff_bak,
@@ -313,7 +300,9 @@ void hdrprocess_sony_raw(uint16_t 	*src,
 
 				
 				y_valid = (x == 0)? y - HDR_BLOCK_H : y;
+			#if HDR_DEBUG_ENABLE
 				y_pos   = y_valid/HDR_BLOCK_H;
+			#endif
 				bFristCTUline = y_valid < HDR_BLOCK_H;
 				hdr_block_process(g_HdrBlkBuf[buffIdx], g_HdrOutBuf[buffIdx], bFristCTUline ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
 

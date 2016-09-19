@@ -40,14 +40,7 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 							 uint32_t u32Rows, 			//<<! [in] 
 							 uint32_t u32Cols,			//<<! [in]  
 	 						 uint16_t normValue,
-						#if HDR_DEBUG_ENABLE
-							 uint16_t *p_u16Dst,
-							 uint16_t  *p_u8FilterW,
-							 int xPos,
-							 int yPos)
-						#else
 							 uint16_t *p_u16Dst)		//<<! [out] HDR out 16bit,have not do WDR.
-						#endif
 {
 #ifdef __XM4__
 	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);

@@ -56,7 +56,6 @@
 #define     THUMB_SIZE_H			256
 
 
-#define     CODE_SCATTER 		1
 
 #define     R_B_LONG_PATTERN	0X5555
 #define     R_B_SHORT_PATTERN	0XAAAA 

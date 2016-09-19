@@ -23,6 +23,7 @@
 **
 ***************************************************************************/
 #include "rk_bayerhdr.h"
+#define     CODE_SCATTER 		0
 
 void zigzagDebayer(	uint16_t *p_u16Src, 
 						uint16_t *p_u16Tab, 
@@ -94,12 +95,10 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 	uint16_t* pScaleL1G1	= scale+1 + 3*HDR_FILTER_W ;                              
       
 
-	uint16_t OffsetGap2[16]  = {0, 2, 4, 6, 8,10,12,14,
-								16,18,20,22,24,26,28,30};
+	uint16_t OffsetGap2[16]  = {0, 2, 4, 6, 8,10,12,14, 16,18,20,22,24,26,28,30};
 	short16 vOffsetGap2		 = *(short16*)(&OffsetGap2);	
 
-	uint16_t OffsetGap4[16]  = {0, 4, 8, 12, 16,20,24,28,
-								32,36,40, 44, 48,52,56,60};
+	uint16_t OffsetGap4[16]  = {0, 4, 8, 12, 16,20,24,28, 32,36,40, 44, 48,52,56,60};
 	short16 vOffsetGap4		 = *(short16*)(&OffsetGap4);	
 
 	
@@ -116,43 +115,32 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 	// perm cfg:
 	// g0 is same with b
 	// g1 is same with r
-	uint8_t cfg_adj_red1[32] 		= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,
-											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	uint8_t cfg_adj_red2[32] 		= {2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,16+3,
-											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	uint8_t cfg_adj_red3[32] 		= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,
-											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uint8_t cfg_adj_red1[32] 		= { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,
+										0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uint8_t cfg_adj_red2[32] 		= { 2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,16+3,
+										0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uint8_t cfg_adj_red3[32] 		= { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16+1,
+	 									0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-	uchar32 vcfgAdjRed1= *(uchar32*)(&cfg_adj_red1);
-	uchar32 vcfgAdjRed2= *(uchar32*)(&cfg_adj_red2);
-	uchar32 vcfgAdjRedPack= *(uchar32*)(&cfg_adj_red3);
+	uchar32 vcfgAdjRed1				= *(uchar32*)(&cfg_adj_red1);
+	uchar32 vcfgAdjRed2				= *(uchar32*)(&cfg_adj_red2);
+	uchar32 vcfgAdjRedPack			= *(uchar32*)(&cfg_adj_red3);
 
 	
-	uint8_t cfg_adj_blu1[32] 		= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
-											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	uint8_t cfg_adj_blu2[32] 		= {2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,16+2,
-											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	uchar32 vcfgAdjBlu1= *(uchar32*)(&cfg_adj_blu1);
-	uchar32 vcfgAdjBlu2= *(uchar32*)(&cfg_adj_blu2);
-	uchar32	vcfgAdjBluePack= *(uchar32*)(&cfg_adj_blu1);
-		
-	uint8_t cfg_adj_gre1[32] 		= {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
-											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	uint8_t cfg_adj_gre2[32]  	= {2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,16+2,
-											0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	uchar32 vcfgAdjGre1= *(uchar32*)(&cfg_adj_gre1);
-	uchar32 vcfgAdjGre2= *(uchar32*)(&cfg_adj_gre2);
-
-	uint8_t cfg_pack0[32]  	= {	0, 16, 1, 17, 2, 18, 3, 19,
-										4, 20, 5, 21, 6, 22, 7, 23,
-									    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	uint8_t cfg_pack1[32]  	= { 8,  24, 9,  25, 10, 26, 11, 27, 
-										12, 28, 13, 29, 14, 30, 15, 31,
+	uint8_t cfg_adj_blu1[32] 		= { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
 										0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uint8_t cfg_adj_blu2[32] 		= { 2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,16+2,
+										0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uchar32 vcfgAdjBlu1				= *(uchar32*)(&cfg_adj_blu1);
+	uchar32 vcfgAdjBlu2				= *(uchar32*)(&cfg_adj_blu2);
 
-	uchar32	vcfgPack0	= *(uchar32*)(&cfg_pack0);
-	uchar32	vcfgPack1	= *(uchar32*)(&cfg_pack1);
-
+		
+	uint8_t cfg_adj_gre1[32]  		= { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
+									0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uint8_t cfg_adj_gre2[32]  		= { 2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,16+2,
+									0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	uchar32 vcfgAdjGre1				= *(uchar32*)(&cfg_adj_gre1);
+	uchar32 vcfgAdjGre2				= *(uchar32*)(&cfg_adj_gre2);
 
 
 	//  6 x 3 = 15 reg for one pixel interpolation.		
@@ -386,63 +374,59 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			vB3packed	= vB3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vBL0best	= (ushort16)vshiftr(vBL0best, (unsigned char)1);// times// interpoaltion		
 			vBL0Long		= vselect(vB3packed, vBL0best, R_B_LONG_PATTERN);
-			//PRINT_CEVA_VRF("vBL0Long", vBL0Long, stderr);
+
 			vBL0Short		= vselect(vB3packed, vBL0best, R_B_SHORT_PATTERN);
 			vBL0Short		= (ushort16)vshiftl(vBL0Short, 3);// times
-			//PRINT_CEVA_VRF("vBL0Short", vBL0Short, stderr);
+
 
 
 			vG2packed	= vG2offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG0L0best	= (ushort16)vshiftr(vG0L0best, (unsigned char)1);// times// interpoaltion		
 			vG0L0Long		= vselect(vG2packed, vG0L0best, G_LONG_PATTERN);
-			//PRINT_CEVA_VRF("vG0L0Long", vG0L0Long, stderr);
+
 			vG0L0Short	= vselect(vG2packed, vG0L0best, G_SHORT_PATTERN);
 			vG0L0Short	= (ushort16)vshiftl(vG0L0Short, 3);// times
-			//PRINT_CEVA_VRF("vG0L0Short", vG0L0Short, stderr);
+
 
 			vG3packed	= vG3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG1L0best	= (ushort16)vshiftr(vG1L0best, (unsigned char)1);// times// interpoaltion		
 			vG1L0Long		= vselect(vG3packed, vG1L0best, G_SHORT_PATTERN);
-			//PRINT_CEVA_VRF("vG1L0Long", vG1L0Long, stderr);
+
 			vG1L0Short	= vselect(vG3packed, vG1L0best, G_LONG_PATTERN);
 			vG1L0Short	= (ushort16)vshiftl(vG1L0Short, 3);// times
-			//PRINT_CEVA_VRF("vG1L0Short", vG1L0Short, stderr);
+
 
 			// line 1 GRBG
 			vR4packed	= (ushort16)vperm(vR4,vGR4,vcfgAdjRedPack); // orignal
 			vRL1best	= (ushort16)vshiftr(vRL1best, (unsigned char)1);// times// interpoaltion		
 			vRL1Long		= vselect(vR4packed, vRL1best, R_B_SHORT_PATTERN);
-			//PRINT_CEVA_VRF("vRL1Long", vRL1Long, stderr);
+
 			vRL1Short		= vselect(vR4packed, vRL1best, R_B_LONG_PATTERN);
 			vRL1Short		= (ushort16)vshiftl(vRL1Short, 3);// times
-			//PRINT_CEVA_VRF("vRL1Short", vRL1Short, stderr);
-
 
 			vB5packed	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
 			vBL1best	= (ushort16)vshiftr(vBL1best, (unsigned char)1);// times// interpoaltion		
 			vBL1Long		= vselect(vB5packed, vBL1best, R_B_SHORT_PATTERN );
-			//PRINT_CEVA_VRF("vBL1Long", vBL1Long, stderr);
+
 			vBL1Short		= vselect(vB5packed, vBL1best, R_B_LONG_PATTERN);
 			vBL1Short		= (ushort16)vshiftl(vBL1Short, 3);// times
-			//PRINT_CEVA_VRF("vBL1Short", vBL1Short, stderr);
-
 
 			vG4packed	= vG4offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG0L1best	= (ushort16)vshiftr(vG0L1best, (unsigned char)1);// times// interpoaltion		
 			vG0L1Long		= vselect(vG4packed, vG0L1best, G_LONG_PATTERN);
-			//PRINT_CEVA_VRF("vG0L1Long", vG0L1Long, stderr);
+
 			vG0L1Short	= vselect(vG4packed, vG0L1best, G_SHORT_PATTERN);
 			vG0L1Short	= (ushort16)vshiftl(vG0L1Short, 3);// times
-			//PRINT_CEVA_VRF("vG0L1Short", vG0L1Short, stderr);
+
 
 			vG5packed	= vG5offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG1L1best	= (ushort16)vshiftr(vG1L1best, (unsigned char)1);// times// interpoaltion		
 			vG1L1Long		= vselect(vG5packed, vG1L1best, G_SHORT_PATTERN);
-			//PRINT_CEVA_VRF("vG1L1Long", vG1L1Long, stderr);
+
 			vG1L1Short	= vselect(vG5packed, vG1L0best, G_LONG_PATTERN);
 			vG1L1Short	= (ushort16)vshiftl(vG1L1Short, 3);// times
-			//PRINT_CEVA_VRF("vG1L1Short", vG1L1Short, stderr);
-			// data arrange as scatter, store out to packed bayer.
+
+
 			vpst(vRL0Long, 	pL0Red, vOffsetGap2);
 			vpst(vBL0Long,  pL0Blu, vOffsetGap2);
 			vpst(vG0L0Long, pL0G0,  vOffsetGap2);
@@ -463,7 +447,7 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			vpst(vG0L1Short, pL1G0_s,  vOffsetGap2);
 			vpst(vG1L1Short, pL1G1_s,  vOffsetGap2);
 
-		#if 1//CONNECT_LUT
+			//CONNECT_LUT
 			// ------------------------------------------
 			// use difference to LUT
 			// ------------------------------------------
@@ -516,9 +500,6 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			pScaleL1Red  += 4*HDR_FILTER_W;	
 			pScaleL1Blu  += 4*HDR_FILTER_W;	
 			pScaleL1G1   += 4*HDR_FILTER_W;	
-
-			
-		#endif
 
 			pL0G0	  += 4*HDR_BLOCK_W;	                        
 			pL0Red 	  += 4*HDR_BLOCK_W;	                        
