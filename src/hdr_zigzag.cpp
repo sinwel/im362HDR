@@ -38,6 +38,7 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 #ifdef __XM4__
 	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
 #endif
+	 uint8_t log2_expTimes = 3;// log2(8)	
 	uint16_t i,j,SecMask,blacklevel=64;
 	ushort16 vG0,vR0,vB1,vG1,vG2,vR2,vB3,vG3,vG4,vR4,vB5,vG5,vG6,vR6,vB7,vG7;
 	ushort16 vGR0,vBG1,vGR2,vBG3,vGR4,vBG5,vGR6,vBG7;
@@ -364,67 +365,67 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			// line 0 GRBG
 			//vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
 			vRL0best	= (ushort16)vshiftr(vRL0best, (unsigned char)1);// times// interpoaltion		
-			vRL0Long		= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
-			//PRINT_CEVA_VRF("vRL0Long", vRL0Long, stderr);
-			vRL0Short		= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
-			vRL0Short		= (ushort16)vshiftl(vRL0Short, 3);// times
-			//PRINT_CEVA_VRF("vRL0Short", vRL0Short, stderr);
+			vRL0Long	= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
+
+			vRL0Short	= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
+			vRL0Short	= (ushort16)vshiftl(vRL0Short, log2_expTimes);// times
 
 
-			vB3packed	= vB3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+
+			//vB3packed	= vB3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vBL0best	= (ushort16)vshiftr(vBL0best, (unsigned char)1);// times// interpoaltion		
-			vBL0Long		= vselect(vB3packed, vBL0best, R_B_LONG_PATTERN);
+			vBL0Long	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_LONG_PATTERN);
 
-			vBL0Short		= vselect(vB3packed, vBL0best, R_B_SHORT_PATTERN);
-			vBL0Short		= (ushort16)vshiftl(vBL0Short, 3);// times
+			vBL0Short	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_SHORT_PATTERN);
+			vBL0Short	= (ushort16)vshiftl(vBL0Short, log2_expTimes);// times
 
 
 
-			vG2packed	= vG2offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+			//vG2packed	= vG2offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG0L0best	= (ushort16)vshiftr(vG0L0best, (unsigned char)1);// times// interpoaltion		
-			vG0L0Long		= vselect(vG2packed, vG0L0best, G_LONG_PATTERN);
+			vG0L0Long	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_LONG_PATTERN);
 
-			vG0L0Short	= vselect(vG2packed, vG0L0best, G_SHORT_PATTERN);
-			vG0L0Short	= (ushort16)vshiftl(vG0L0Short, 3);// times
+			vG0L0Short	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_SHORT_PATTERN);
+			vG0L0Short	= (ushort16)vshiftl(vG0L0Short, log2_expTimes);// times
 
 
-			vG3packed	= vG3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+			//vG3packed	= vG3offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG1L0best	= (ushort16)vshiftr(vG1L0best, (unsigned char)1);// times// interpoaltion		
-			vG1L0Long		= vselect(vG3packed, vG1L0best, G_SHORT_PATTERN);
+			vG1L0Long	= vselect(vG3offset/*vG3packed*/, vG1L0best, G_SHORT_PATTERN);
 
-			vG1L0Short	= vselect(vG3packed, vG1L0best, G_LONG_PATTERN);
-			vG1L0Short	= (ushort16)vshiftl(vG1L0Short, 3);// times
+			vG1L0Short	= vselect(vG3offset/*vG3packed*/, vG1L0best, G_LONG_PATTERN);
+			vG1L0Short	= (ushort16)vshiftl(vG1L0Short, log2_expTimes);// times
 
 
 			// line 1 GRBG
 			vR4packed	= (ushort16)vperm(vR4,vGR4,vcfgAdjRedPack); // orignal
 			vRL1best	= (ushort16)vshiftr(vRL1best, (unsigned char)1);// times// interpoaltion		
-			vRL1Long		= vselect(vR4packed, vRL1best, R_B_SHORT_PATTERN);
+			vRL1Long	= vselect(vR4packed, vRL1best, R_B_SHORT_PATTERN);
 
-			vRL1Short		= vselect(vR4packed, vRL1best, R_B_LONG_PATTERN);
-			vRL1Short		= (ushort16)vshiftl(vRL1Short, 3);// times
+			vRL1Short	= vselect(vR4packed, vRL1best, R_B_LONG_PATTERN);
+			vRL1Short	= (ushort16)vshiftl(vRL1Short, log2_expTimes);// times
 
 			vB5packed	= (ushort16)vperm(vB5,vBG5,vcfgAdjBlu1);
 			vBL1best	= (ushort16)vshiftr(vBL1best, (unsigned char)1);// times// interpoaltion		
-			vBL1Long		= vselect(vB5packed, vBL1best, R_B_SHORT_PATTERN );
+			vBL1Long	= vselect(vB5packed, vBL1best, R_B_SHORT_PATTERN );
 
-			vBL1Short		= vselect(vB5packed, vBL1best, R_B_LONG_PATTERN);
-			vBL1Short		= (ushort16)vshiftl(vBL1Short, 3);// times
+			vBL1Short	= vselect(vB5packed, vBL1best, R_B_LONG_PATTERN);
+			vBL1Short	= (ushort16)vshiftl(vBL1Short, log2_expTimes);// times
 
-			vG4packed	= vG4offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+			//vG4packed	= vG4offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG0L1best	= (ushort16)vshiftr(vG0L1best, (unsigned char)1);// times// interpoaltion		
-			vG0L1Long		= vselect(vG4packed, vG0L1best, G_LONG_PATTERN);
+			vG0L1Long	= vselect(vG4offset/*vG4packed*/, vG0L1best, G_LONG_PATTERN);
 
-			vG0L1Short	= vselect(vG4packed, vG0L1best, G_SHORT_PATTERN);
-			vG0L1Short	= (ushort16)vshiftl(vG0L1Short, 3);// times
+			vG0L1Short	= vselect(vG4offset/*vG4packed*/, vG0L1best, G_SHORT_PATTERN);
+			vG0L1Short	= (ushort16)vshiftl(vG0L1Short, log2_expTimes);// times
 
 
-			vG5packed	= vG5offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
+			//vG5packed	= vG5offset;//(ushort16)vperm(vB3,vBG3,vcfgAdjBlu1); // orignal
 			vG1L1best	= (ushort16)vshiftr(vG1L1best, (unsigned char)1);// times// interpoaltion		
-			vG1L1Long		= vselect(vG5packed, vG1L1best, G_SHORT_PATTERN);
+			vG1L1Long	= vselect(vG5offset/*vG5packed*/, vG1L1best, G_SHORT_PATTERN);
 
-			vG1L1Short	= vselect(vG5packed, vG1L0best, G_LONG_PATTERN);
-			vG1L1Short	= (ushort16)vshiftl(vG1L1Short, 3);// times
+			vG1L1Short	= vselect(vG5offset/*vG5packed*/, vG1L0best, G_LONG_PATTERN);
+			vG1L1Short	= (ushort16)vshiftl(vG1L1Short, log2_expTimes);// times
 
 
 			vpst(vRL0Long, 	pL0Red, vOffsetGap2);
