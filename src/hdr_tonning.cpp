@@ -68,7 +68,9 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 	ushort16 vtS0,vtS1,vtS2,vtS3;
 	ushort16 vOut0,vOut1,vOut2,vOut3;
 	uchar32  vbi0,vbi1,vbi2,vbi3;
-	
+	 int16 	 vaccThumb  = (int16)0;
+	ushort16 vAvg;
+	uint16_t thumbPixel = 0;
 	unsigned int vprMask;
 	unsigned int vprRightMask;
 	
@@ -165,8 +167,18 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 			vOut2 = (ushort16)vmac3(splitsrc, psl, vS2, vL2, vbi2, (uint16) HDR_LS_ROUND, (unsigned char)HDR_LS_BITS); 
 			vOut3 = (ushort16)vmac3(splitsrc, psl, vS3, vL3, vbi3, (uint16) HDR_LS_ROUND, (unsigned char)HDR_LS_BITS); 
 
-			vst(vOut0,(ushort16*)(p_dst)   			,			0xffff);  
-			vst(vOut1,(ushort16*)(p_dst+imageStep)	,			0xffff);  
+
+			// TODO:  add 64x64 block to thumb a pixel.
+			
+			vaccThumb = vaccadd(vaccThumb, vOut0);
+			vaccThumb = vaccadd(vaccThumb, vOut1);
+			vaccThumb = vaccadd(vaccThumb, vOut2);
+			vaccThumb = vaccadd(vaccThumb, vOut3);
+
+
+			
+			vst(vOut0,(ushort16*)(p_dst)   				,			0xffff);  
+			vst(vOut1,(ushort16*)(p_dst+imageStep)		,			0xffff);  
 			vst(vOut2,(ushort16*)(p_dst+2*imageStep)	,			0xffff);  
 			vst(vOut3,(ushort16*)(p_dst+3*imageStep)	,			0xffff);  
 			p_dst += 4*imageStep;
@@ -177,6 +189,9 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 			
 		}
 	}
+	vAvg 		= (ushort16)vaccshiftr(vaccThumb, (ushort16) 7);//4x32
+	thumbPixel 	= (vintrasum(vintrasum(vAvg))>>4);// scale 32x64 block to one pixel.
+
 
 #ifdef __XM4__
 PROFILER_END();

@@ -38,7 +38,8 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 #ifdef __XM4__
 	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
 #endif
-	 uint8_t log2_expTimes = 3;// log2(8)	
+	 uint8_t log2_expTimes 	= 3;// log2(8)	
+	 uint8_t log2_resiScale = 1;//2^param.bits/(param.noise*param.exptimes)
 	uint16_t i,j,blacklevel=64;
 	uint16_t SecMaskR,SecMaskB,SecMaskG0,SecMaskG1;
 	ushort16 vG0,vR0,vB1,vG1,vG2,vR2,vB3,vG3,vG4,vR4,vB5,vG5,vG6,vR6,vB7,vG7;
@@ -280,6 +281,51 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 		#endif
 
 
+			// line 0 GRBG
+			//vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
+			vRL0best	= (ushort16)vshiftr(vRL0best, 	(unsigned char)1);// times// interpoaltion		
+			vBL0best	= (ushort16)vshiftr(vBL0best, 	(unsigned char)1);// times// interpoaltion		
+			vG0L0best	= (ushort16)vshiftr(vG0L0best, 	(unsigned char)1);// times// interpoaltion		
+			vG1L0best	= (ushort16)vshiftr(vG1L0best, 	(unsigned char)1);// times// interpoaltion		
+
+			vRL0Long	= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
+			vBL0Long	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_LONG_PATTERN);
+			vG0L0Long	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_LONG_PATTERN);
+			vG1L0Long	= vselect(vG3offset/*vG3packed*/, vG1L0best, G_SHORT_PATTERN);
+
+
+			vRL0Short	= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
+			vBL0Short	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_SHORT_PATTERN);
+			vG0L0Short	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_SHORT_PATTERN);
+			vG1L0Short	= vselect(vG3offset/*vG3packed*/, vG1L0best, G_LONG_PATTERN);
+
+			vRL0Short	= (ushort16)vshiftl(vRL0Short, log2_expTimes);// times
+			vBL0Short	= (ushort16)vshiftl(vBL0Short, log2_expTimes);// times
+			vG0L0Short	= (ushort16)vshiftl(vG0L0Short, log2_expTimes);// times
+			vG1L0Short	= (ushort16)vshiftl(vG1L0Short, log2_expTimes);// times
+
+			v0	= vabssub(vG0L0Long, vG0L0Short);
+			v1	= vabssub(vRL0Long,  vRL0Short);
+			v2	= vabssub(vBL0Long,  vBL0Short);
+			v3	= vabssub(vG1L0Long, vG1L0Short);
+
+			// scale the diff by [2^param.bits/(param.noise*param.exptimes)] = 1024/(64*8)
+			v0 	= (ushort16)vshiftl(v0 , log2_resiScale); 
+			v1 	= (ushort16)vshiftl(v1 , log2_resiScale); 
+			v2	= (ushort16)vshiftl(v2 , log2_resiScale); 
+			v3	= (ushort16)vshiftl(v3 , log2_resiScale);
+
+			v0 	= vmin(v0 , (ushort16) normValue);         
+			v1 	= vmin(v1 , (ushort16) normValue);         
+			v2	= vmin(v2 , (ushort16) normValue);         
+			v3	= vmin(v3 , (ushort16) normValue);         
+
+			vpst(v0, 	pScaleL0G0,  vOffsetGap2);
+			vpst(v1,	pScaleL0Red, vOffsetGap2);
+			vpst(v2, 	pScaleL0Blu, vOffsetGap2);
+			vpst(v3, 	pScaleL0G1,  vOffsetGap2);
+
+
 
 
 
@@ -361,50 +407,6 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			// overlap the long time and short time image
 			// 4 Line x 32 for long and short.
 			// ------------------------------------------
-			// line 0 GRBG
-			//vR2packed	= (ushort16)vperm(vR2,vGR2,vcfgAdjRedPack); // orignal
-			vRL0best	= (ushort16)vshiftr(vRL0best, 	(unsigned char)1);// times// interpoaltion		
-			vBL0best	= (ushort16)vshiftr(vBL0best, 	(unsigned char)1);// times// interpoaltion		
-			vG0L0best	= (ushort16)vshiftr(vG0L0best, 	(unsigned char)1);// times// interpoaltion		
-			vG1L0best	= (ushort16)vshiftr(vG1L0best, 	(unsigned char)1);// times// interpoaltion		
-
-			vRL0Long	= vselect(vR2packed, vRL0best, R_B_LONG_PATTERN);
-			vBL0Long	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_LONG_PATTERN);
-			vG0L0Long	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_LONG_PATTERN);
-			vG1L0Long	= vselect(vG3offset/*vG3packed*/, vG1L0best, G_SHORT_PATTERN);
-
-
-			vRL0Short	= vselect(vR2packed, vRL0best, R_B_SHORT_PATTERN);
-			vBL0Short	= vselect(vB3offset/*vB3packed*/, vBL0best, R_B_SHORT_PATTERN);
-			vG0L0Short	= vselect(vG2offset/*vG2packed*/, vG0L0best, G_SHORT_PATTERN);
-			vG1L0Short	= vselect(vG3offset/*vG3packed*/, vG1L0best, G_LONG_PATTERN);
-
-			vRL0Short	= (ushort16)vshiftl(vRL0Short, log2_expTimes);// times
-			vBL0Short	= (ushort16)vshiftl(vBL0Short, log2_expTimes);// times
-			vG0L0Short	= (ushort16)vshiftl(vG0L0Short, log2_expTimes);// times
-			vG1L0Short	= (ushort16)vshiftl(vG1L0Short, log2_expTimes);// times
-
-			v0	= vabssub(vG0L0Long, vG0L0Short);
-			v1	= vabssub(vRL0Long,  vRL0Short);
-			v2	= vabssub(vBL0Long,  vBL0Short);
-			v3	= vabssub(vG1L0Long, vG1L0Short);
-
-			v0 	= (ushort16)vshiftl(v0 , 1); 
-			v1 	= (ushort16)vshiftl(v1 , 1); 
-			v2	= (ushort16)vshiftl(v2 , 1); 
-			v3	= (ushort16)vshiftl(v3 , 1);
-
-			v0 	= vmin(v0 , (ushort16) normValue);         
-			v1 	= vmin(v1 , (ushort16) normValue);         
-			v2	= vmin(v2 , (ushort16) normValue);         
-			v3	= vmin(v3 , (ushort16) normValue);         
-
-			vpst(v0, 	pScaleL0G0,  vOffsetGap2);
-			vpst(v1,	pScaleL0Red, vOffsetGap2);
-			vpst(v2, 	pScaleL0Blu, vOffsetGap2);
-			vpst(v3, 	pScaleL0G1,  vOffsetGap2);
-
-
 
 
 			// line 1 GRBG
@@ -485,12 +487,10 @@ void zigzagDebayer(	uint16_t *p_u16Src,
 			v7	= vabssub(vG1L1Long, vG1L1Short);
 
 			// scale the diff by [2^param.bits/(param.noise*param.exptimes)] = 1024/(64*8)
- 
-			
-			v4 	= (ushort16)vshiftl(v4 , 1); 
-			v5 	= (ushort16)vshiftl(v5 , 1); 
-			v6	= (ushort16)vshiftl(v6 , 1); 
-			v7	= (ushort16)vshiftl(v7 , 1); 
+			v4 	= (ushort16)vshiftl(v4 , log2_resiScale); 
+			v5 	= (ushort16)vshiftl(v5 , log2_resiScale); 
+			v6	= (ushort16)vshiftl(v6 , log2_resiScale); 
+			v7	= (ushort16)vshiftl(v7 , log2_resiScale); 
 
 			// and min(x,ref)
 			v4 	= vmin(v4 , (ushort16) normValue);         
