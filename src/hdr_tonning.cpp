@@ -31,20 +31,24 @@
 #define 	HDR_LS_BITS			8
 #define 	HDR_LS_ROUND		(1<<(HDR_LS_BITS-1))
 #define 	HDR_LS_QUANT		((1<<HDR_LS_BITS)-1)
-void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
-							 uint16_t *p_u16TabLS, 		//<<! [in] 0-1024 scale tab, may be can use char type for 0-255
-							 uint16_t *p_u16ImageL_S,	//<<! [in] long and short image[block32x64]
-							 uint16_t *p_u16PrevThumb,	//<<! [in] previous frame thumb image for WDR scale.
-							 int32_t weightStep, 		//<<! [in] weight stride which add padding.
-							 int32_t imageStep, 		//<<! [in] 16 align
-							 uint32_t u32Rows, 			//<<! [in] 
-							 uint32_t u32Cols,			//<<! [in]  
-	 						 uint16_t normValue,
-							 uint16_t *p_u16Dst)		//<<! [out] HDR out 16bit,have not do WDR.
+void FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024 scale tab.
+							 uint16_t*	p_u16TabLS, 		//<<! [in] 0-1024 scale tab, may be can use char type for 0-255
+							 uint16_t*	p_u16ImageL_S,	//<<! [in] long and short image[block32x64]
+							 uint16_t*	p_u16PrevThumb,	//<<! [in] previous frame thumb image for WDR scale.
+							 uint16_t*	p_u16CurrThumb,	//<<! [in] current frame thumb image for WDR scale.
+							 uint16_t*  pScaleTab16banks,
+							 uint16_t  	thumbStride,
+							 int32_t 	weightStep, 		//<<! [in] weight stride which add padding.
+							 int32_t 	imageStep, 		//<<! [in] 16 align
+							 uint32_t 	u32Rows, 			//<<! [in] 
+							 uint32_t 	u32Cols,			//<<! [in]  
+	 						 uint16_t 	normValue,
+							 uint16_t*	p_u16Dst)		//<<! [out] HDR out 16bit,have not do WDR.
 {
 #ifdef __XM4__
 	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
 #endif	
+	uint16_t log2ExpTimes = 3;
 	unsigned short* p_imgL 	= p_u16ImageL_S;
 	unsigned short* p_imgS 	= p_u16ImageL_S + HDR_BLOCK_H*HDR_BLOCK_W;
 	unsigned int 	row, col;
@@ -60,19 +64,30 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 	ushort16 vL0, vL1, vL2, vL3;
 	ushort16 vS0, vS1, vS2, vS3;
 
+	uint8_t  xinter[16] = {64 ,63 ,62 ,61 ,60 ,59 ,58 ,57 ,56 ,55 ,54 ,53 ,52 ,51 ,50 ,49 };  
+	uchar16  biXref = *(uchar16*)xinter;
+	uchar16  biXf0;
+	uchar16	 biXf1;
 	
-	ushort16 v0, v1, v2, v3, v4, v5;
+	ushort16 v0, v1, v2, v3, v4, v5, v6, v7 ;
+	ushort16 v8, v9, v10,v11,v12,v13,v14,v15;
 	ushort16 vr0,vr1,vr2,vr3;
 	ushort16 vdummy;
 	ushort16 vtL0,vtL1,vtL2,vtL3;
 	ushort16 vtS0,vtS1,vtS2,vtS3;
 	ushort16 vOut0,vOut1,vOut2,vOut3;
 	uchar32  vbi0,vbi1,vbi2,vbi3;
-	 int16 	 vaccThumb  = (int16)0;
-	ushort16 vAvg;
-	uint16_t thumbPixel = 0;
+ 	int16 	 vaccThumb  = (int16)0;
+	ushort16 vAvgSeg;
+	uint16_t thumb = 0;
 	unsigned int vprMask;
 	unsigned int vprRightMask;
+
+	uint16_t point0Top = *p_u16PrevThumb;
+	uint16_t point1Top = *(p_u16PrevThumb+1);
+
+	uint16_t point0Bot = *(p_u16PrevThumb+thumbStride);
+	uint16_t point1Bot = *(p_u16PrevThumb+thumbStride+1);
 	
 	vprMask = 0xFFFFFFFF;
 	vprRightMask = 0xFFFFFFFF;
@@ -105,7 +120,13 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 
 		v0 = vmax(v0a, v0b, v0c);
 		v1 = vmax(v1a, v1b, v1c);
-
+	#if ENABLE_WDR
+		biXf0 = (uchar16)vsub((ushort16)biXref,		(ushort16)col);
+		biXf1 = (uchar16)vsub((ushort16)(col+64),	(ushort16)biXref);
+		// x aixs interpolation
+		v6 = (ushort16)vmac3(biXf0, point0Top, biXf1, point1Top, (uint16) 0, (unsigned char)6);
+		v7 = (ushort16)vmac3(biXf0, point0Bot, biXf1, point1Bot, (uint16) 0, (unsigned char)6);
+	#endif
 		for(row = 0; row < u32Rows; row+=4) 
 		{
 			vL0 = *(ushort16*) p_imgL;
@@ -175,6 +196,30 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 			vaccThumb = vaccadd(vaccThumb, vOut2);
 			vaccThumb = vaccadd(vaccThumb, vOut3);
 
+		#if ENABLE_WDR
+
+			// TODO:  read Thumb to bilinear the map, LUT table for mac.
+
+			// y aixs interpolation
+			v8  = (ushort16)vmac3(v6, (unsigned short)(32 - row  ), v7, (unsigned short)row,     (uint16) 0, (unsigned char)(5+log2ExpTimes));
+			v9  = (ushort16)vmac3(v6, (unsigned short)(32 - row-1), v7, (unsigned short)(row+1), (uint16) 0, (unsigned char)(5+log2ExpTimes));
+			v10 = (ushort16)vmac3(v6, (unsigned short)(32 - row-2), v7, (unsigned short)(row+2), (uint16) 0, (unsigned char)(5+log2ExpTimes));
+			v11 = (ushort16)vmac3(v6, (unsigned short)(32 - row-3), v7, (unsigned short)(row+3), (uint16) 0, (unsigned char)(5+log2ExpTimes));
+
+
+			// LUT wdr table for scale.
+			v8  = vpld(rel,pScaleTab16banks , (short16)v8 );
+			v9  = vpld(rel,pScaleTab16banks , (short16)v9 );
+			v10 = vpld(rel,pScaleTab16banks , (short16)v10);
+			v11 = vpld(rel,pScaleTab16banks , (short16)v11);
+
+			// mpy and clip
+			vOut0 = (ushort16)vmpy(psl, vOut0, v8,  (unsigned char)(5+log2ExpTimes));
+			vOut1 = (ushort16)vmpy(psl, vOut0, v9,  (unsigned char)(5+log2ExpTimes));
+			vOut2 = (ushort16)vmpy(psl, vOut0, v10, (unsigned char)(5+log2ExpTimes));
+			vOut3 = (ushort16)vmpy(psl, vOut0, v11, (unsigned char)(5+log2ExpTimes));
+		#endif
+			// TODO: do wdr by prev thumb image to bilinear hdrout.
 
 			
 			vst(vOut0,(ushort16*)(p_dst)   				,			0xffff);  
@@ -183,16 +228,17 @@ void FilterdLUTBilinear ( uint16_t *p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 			vst(vOut3,(ushort16*)(p_dst+3*imageStep)	,			0xffff);  
 			p_dst += 4*imageStep;
 			
-			// TODO: do wdr by prev thumb image to bilinear hdrout.
-
-			
 			
 		}
+		if ( ((col+16)&31) == 0 )
+		{
+			vAvgSeg		= (ushort16)vaccshiftr(vaccThumb, (ushort16) 6);//2x32
+			thumb 		= (vintrasum(vintrasum(vAvgSeg))>>4);			// scale 32x32 block to one pixel.
+			*(p_u16CurrThumb+(col/32)) = thumb;
+		}
 	}
-	vAvg 		= (ushort16)vaccshiftr(vaccThumb, (ushort16) 7);//4x32
-	thumbPixel 	= (vintrasum(vintrasum(vAvg))>>4);// scale 32x64 block to one pixel.
 
-
+	
 #ifdef __XM4__
 PROFILER_END();
 #endif	

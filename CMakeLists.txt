@@ -245,6 +245,7 @@ if(ENABLE_APP)
 							src/hdr_tonning.cpp
 							src/hdr_process.cpp
 							src/DebugFiles.cpp
+							include/hdr_zigzag.h
 							include/DebugFiles.h
 							include/XM4_defines.h
 							include/rk_bayerhdr.h						
