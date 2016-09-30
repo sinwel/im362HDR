@@ -64,7 +64,14 @@
 #define     CONNECT_LUT         0
 #define     ENABLE_WDR          0
 
-#define     HDR_VECC           1
+#define     HDR_VECC            1
+
+#define     CODE_SCATTER 		0
+#define 	HDR_LS_BITS			8
+#define 	HDR_LS_ROUND		(1<<(HDR_LS_BITS-1))
+#define 	HDR_LS_QUANT		((1<<HDR_LS_BITS)-1)
+
+
 
 
 #define max_(a,b) ((a) > (b) ? (a) : (b))

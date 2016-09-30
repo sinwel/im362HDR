@@ -242,10 +242,10 @@ if(ENABLE_APP)
    
 	file(GLOB preIspFiles   src/main.cpp
 							src/hdr_zigzag.cpp
-							src/hdr_tonning.cpp
 							src/hdr_process.cpp
 							src/DebugFiles.cpp
 							include/hdr_zigzag.h
+							include/hdr_process.h
 							include/DebugFiles.h
 							include/XM4_defines.h
 							include/rk_bayerhdr.h						
