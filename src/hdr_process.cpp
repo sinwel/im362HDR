@@ -37,8 +37,8 @@ PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint8_t		pWeightFilter_bak[HDR_BLO
 
 
 
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")   uint16_t		pPrevThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			 = {0};// 32k store in DDR.
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")   uint16_t		pCurrThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			 = {0};// 32k store in DDR.
+extern uint16_t		pPrevThumb[THUMB_SIZE_W*THUMB_SIZE_W] ;// 32k store in DDR.
+extern uint16_t		pCurrThumb[THUMB_SIZE_W*THUMB_SIZE_W] ;// 32k store in DDR.
 
 
 
@@ -242,14 +242,14 @@ void HDRprocess::FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024
 			
 			
 		}
-		if ( ((col+16)&31) == 0 )
-		{
-			vAvgSeg		= (ushort16)vaccshiftr(vaccThumb, (ushort16) 6);//2x32
-			thumb 		= (vintrasum(vintrasum(vAvgSeg))>>4);			// scale 32x32 block to one pixel.
-			*(p_u16CurrThumb+(col/32)) = thumb;
-		}
+		
 	}
+	uint8_t	bitpsl	= (u32Rows == 32) ? 5 : 4;					// 3024/32 = 94x32 + 16;
+	bitpsl			= (u32Cols == 64) ? (bitpsl+2) : (bitpsl+1);// 1/4 or 1/2
 
+	vAvgSeg			= (ushort16)vaccshiftr(vaccThumb, (ushort16) bitpsl);//4x32
+	thumb 			= (vintrasum(vintrasum(vAvgSeg))>>4);			// scale 32x64 block to one pixel.
+	*p_u16CurrThumb = thumb;
 	
 #ifdef __XM4__
 PROFILER_END();
@@ -876,8 +876,8 @@ void HDRprocess::hdr_block_process(int 		  x,
 	FilterdLUTBilinear ( pWeightBuff				, 	//<<! [in] 0-1024 scale tab.
 						 p_u16TabLongShort			,	//<<! [in] 0-1024 scale tab, may be can use char type for 0-255
 						 pL_S_ImageBuff[buffIdx]	,	//<<! [in] long and short image[block32x64]
-						 pPrevThumb + (y>>5)*thumbStride + (x>>5) ,	//<<! [in] previous frame thumb image for WDR scale.
-						 pCurrThumb + (y>>5)*thumbStride + (x>>5) ,
+						 pPrevThumb + (y>>5)*thumbStride + (x>>6) ,	//<<! [in] previous frame thumb image for WDR scale.
+						 pCurrThumb + (y>>5)*thumbStride + (x>>6) ,
 						 pWdrTab16banks				,
 						 thumbStride				,
 						 HDR_FILTER_W				, 	//<<! [in] weight stride which add padding.

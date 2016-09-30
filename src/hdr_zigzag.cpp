@@ -158,7 +158,7 @@ void HDRInterface::hdrprocess_sony_raw()
 					y_pos   = y_valid/HDR_BLOCK_H;
 				#endif
 					bFristCTUline = y_valid < HDR_BLOCK_H;
-					hdr_block_process(x,y,thumbStride,frameNum,g_HdrBlkBuf[buffIdx], g_HdrOutBuf[buffIdx], bFristCTUline ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
+					hdr_block_process(x_prev,y_valid,thumbStride,frameNum,g_HdrBlkBuf[buffIdx], g_HdrOutBuf[buffIdx], bFristCTUline ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
 
 					if (bFristCTUline) // skip the first "HDR_PADDING" line data.
 				        dma_2Dtransf(	dst+x_prev, 
@@ -184,7 +184,7 @@ void HDRInterface::hdrprocess_sony_raw()
 		}
 
 		// do last block
-		hdr_block_process(cols,rows,thumbStride,frameNum,g_HdrBlkBuf[(buffIdx+1)&1], g_HdrOutBuf[(buffIdx+1)&1], y_valid < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
+		hdr_block_process(x_prev,y_valid,thumbStride,frameNum,g_HdrBlkBuf[(buffIdx+1)&1], g_HdrOutBuf[(buffIdx+1)&1], y_valid < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
 	    dma_2Dtransf(dst+x_prev, g_HdrOutBuf[(buffIdx+1)&1], y_valid - HDR_PADDING, min_(HDR_BLOCK_H,H-y_valid), min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
 
 		// 2 padding line data miss
