@@ -62,7 +62,7 @@
 #define     G_LONG_PATTERN		0XFFFF
 #define     G_SHORT_PATTERN		0X0
 #define     CONNECT_LUT         0
-#define     ENABLE_WDR          0
+#define     ENABLE_WDR          1
 
 #define     HDR_VECC            1
 

@@ -40,6 +40,7 @@ public:
 							 uint32_t 	u32Rows, 			//<<! [in] 
 							 uint32_t 	u32Cols,			//<<! [in]  
 	 						 uint16_t 	normValue,
+	 						 uint16_t   frameNum,
 							 uint16_t*	p_u16Dst);		//<<! [out] HDR out 16bit,have not do WDR.	//<<! [out] HDR out 16bit,have not do WDR.
 
     void zigzagDebayer(	uint16_t *p_u16Src, 

@@ -23,7 +23,7 @@ PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t		p_u16TabLongShort[962*16
 
 PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t		pWdrTab16banks[962*16]   =
 {
-	#include "../table/longshort_mapping_16banks.dat"
+	#include "../table/16banks.dat"
 };
 
 
@@ -55,6 +55,7 @@ void HDRprocess::FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024
 							 uint32_t 	u32Rows, 			//<<! [in] 
 							 uint32_t 	u32Cols,			//<<! [in]  
 	 						 uint16_t 	normValue,
+	 						 uint16_t 	frameNum,
 							 uint16_t*	p_u16Dst)		//<<! [out] HDR out 16bit,have not do WDR.
 {
 #ifdef __XM4__
@@ -208,31 +209,33 @@ void HDRprocess::FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024
 			vaccThumb = vaccadd(vaccThumb, vOut2);
 			vaccThumb = vaccadd(vaccThumb, vOut3);
 
-		#if ENABLE_WDR
+			if ( frameNum )
+			{
+			#if ENABLE_WDR
 
-			// TODO:  read Thumb to bilinear the map, LUT table for mac.
+				// TODO:  read Thumb to bilinear the map, LUT table for mac.
 
-			// y aixs interpolation
-			v8  = (ushort16)vmac3(v6, (unsigned short)(32 - row  ), v7, (unsigned short)row,     (uint16) 0, (unsigned char)(5+log2ExpTimes));
-			v9  = (ushort16)vmac3(v6, (unsigned short)(32 - row-1), v7, (unsigned short)(row+1), (uint16) 0, (unsigned char)(5+log2ExpTimes));
-			v10 = (ushort16)vmac3(v6, (unsigned short)(32 - row-2), v7, (unsigned short)(row+2), (uint16) 0, (unsigned char)(5+log2ExpTimes));
-			v11 = (ushort16)vmac3(v6, (unsigned short)(32 - row-3), v7, (unsigned short)(row+3), (uint16) 0, (unsigned char)(5+log2ExpTimes));
+				// y aixs interpolation
+				v8  = (ushort16)vmac3(v6, (unsigned short)(32 - row  ), v7, (unsigned short)row,     (uint16) 0, (unsigned char)(5+log2ExpTimes));
+				v9  = (ushort16)vmac3(v6, (unsigned short)(32 - row-1), v7, (unsigned short)(row+1), (uint16) 0, (unsigned char)(5+log2ExpTimes));
+				v10 = (ushort16)vmac3(v6, (unsigned short)(32 - row-2), v7, (unsigned short)(row+2), (uint16) 0, (unsigned char)(5+log2ExpTimes));
+				v11 = (ushort16)vmac3(v6, (unsigned short)(32 - row-3), v7, (unsigned short)(row+3), (uint16) 0, (unsigned char)(5+log2ExpTimes));
 
 
-			// LUT wdr table for scale.
-			v8  = vpld(rel,pScaleTab16banks , (short16)v8 );
-			v9  = vpld(rel,pScaleTab16banks , (short16)v9 );
-			v10 = vpld(rel,pScaleTab16banks , (short16)v10);
-			v11 = vpld(rel,pScaleTab16banks , (short16)v11);
-
-			// mpy and clip
-			vOut0 = (ushort16)vmpy(psl, vOut0, v8,  (unsigned char)(5+log2ExpTimes));
-			vOut1 = (ushort16)vmpy(psl, vOut0, v9,  (unsigned char)(5+log2ExpTimes));
-			vOut2 = (ushort16)vmpy(psl, vOut0, v10, (unsigned char)(5+log2ExpTimes));
-			vOut3 = (ushort16)vmpy(psl, vOut0, v11, (unsigned char)(5+log2ExpTimes));
-		#endif
-			// TODO: do wdr by prev thumb image to bilinear hdrout.
-
+				// LUT wdr table for scale.
+				v8  = vpld(rel,pScaleTab16banks , (short16)v8 );
+				v9  = vpld(rel,pScaleTab16banks , (short16)v9 );
+				v10 = vpld(rel,pScaleTab16banks , (short16)v10);
+				v11 = vpld(rel,pScaleTab16banks , (short16)v11);
+				// TODO: do wdr by prev thumb image to bilinear hdrout.
+				// mpy and clip
+				vOut0 = (ushort16)vmpy(psl, vOut0, v8,  (unsigned char)(6+log2ExpTimes));
+				vOut1 = (ushort16)vmpy(psl, vOut1, v9,  (unsigned char)(6+log2ExpTimes));
+				vOut2 = (ushort16)vmpy(psl, vOut2, v10, (unsigned char)(6+log2ExpTimes));
+				vOut3 = (ushort16)vmpy(psl, vOut3, v11, (unsigned char)(6+log2ExpTimes));
+				
+			#endif
+			}
 			
 			vst(vOut0,(ushort16*)(p_dst)   				,			0xffff);  
 			vst(vOut1,(ushort16*)(p_dst+imageStep)		,			0xffff);  
@@ -857,9 +860,9 @@ void HDRprocess::hdr_block_process(int 		  x,
 					pL_S_ImageBuff[buffIdx],
 					pWeightBuff+1+HDR_FILTER_W); // need be clear to zeros.	
 
-	if ( frameNum > 0)	
+	if ( frameNum > 0 && 0 == x && 0 == y)	
 	{
-		
+		memcpy(pPrevThumb,pCurrThumb,sizeof(uint16_t)*THUMB_SIZE_W*THUMB_SIZE_W);
 		// nonlinear clip for thumb
 		;
 
@@ -885,6 +888,7 @@ void HDRprocess::hdr_block_process(int 		  x,
 						 validH						, 	//<<! [in] 
 						 validW						,	//<<! [in]  
  						 normValue					,
+ 						 frameNum					,
 						 pHDRoutBuff);					//<<! [out] HDR out 16bit,have not do WDR.
 
 

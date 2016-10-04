@@ -53,21 +53,27 @@ void HDRInterface::hdrprocess_sony_raw()
 	uint32_t W		= m_hdrIf->mRawWid;  
 	uint32_t H		= m_hdrIf->mRawHgt;
 	
-	int buffIdx	   	= 0;
+	
 	int rows	   	= ALIGN_CLIP(H,HDR_BLOCK_H);
 	int cols	   	= ALIGN_CLIP(W,HDR_BLOCK_W);   
-
-	int blkOutCnt  	= 0;
-	int x_prev	   	= 0;
-	int y_valid	   	= 0;
-	int x		   	= 0;
+	
 	int thumbStride = m_hdrIf->mThumbStride;// thumb = (w/64,h/32)
 	int frameNum   	= 0;
-	bool bFristCTUline = 0;
+	
 	// process video frames.
 	
 	do
 	{
+		int buffIdx	   	= 0;
+		int blkOutCnt  	= 0;
+		int x_prev	   	= 0;
+		int y_valid	   	= 0;
+		int x		   	= 0;
+		bool bFristCTUline = 0;
+		memset(g_HdrBlkBuf,0,sizeof(g_HdrBlkBuf));
+		memset(g_HdrRowBuf,0,sizeof(g_HdrRowBuf));
+		memset(g_HdrColBuf,0,sizeof(g_HdrColBuf));
+	
 		for (int y = 0; y < rows; y += HDR_BLOCK_H)
 		{
 		#if HDR_DEBUG_ENABLE
@@ -191,7 +197,7 @@ void HDRInterface::hdrprocess_sony_raw()
 
 
 		frameNum++;
-	}while(0);
+	}while(frameNum < 2);
 }
 
 
