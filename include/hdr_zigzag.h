@@ -55,15 +55,15 @@ class HDRInterface : public HDRprocess
 {
 
 public:
-
+/*
     HDRInterface();
     ~HDRInterface();
-
+*/
     HDRInfStruct*       m_hdrIf; 
 
-	uint16_t		    pWdrTable[16*962];	                //<<! 961 ?	
+	//uint16_t		    pWdrTable[16*962];	                //<<! 961 ?	
 	//uint16_t		    pFushionTable[16*962];	 
-	uint8_t		        pFushionTable[16*962];	            //<<! fushion by bilinear for long and short
+	//uint8_t		        pFushionTable[16*962];	            //<<! fushion by bilinear for long and short
     /*
 	//<<!  RawSrc
 	uint32_t 		    mRawWid;							//<<! RawSrcs data width

@@ -19,14 +19,20 @@
 #define _HDR_PROCESS_H_
 
 #include "rk_bayerhdr.h"
-
+#include "Debugfiles.h"
 
 class HDRprocess 
 {
-    //HDRprocess();
-    //~HDRprocess();
 public:
- 
+    int mFrameNum;
+#if HDR_DEBUG_ENABLE
+    int x_pos ;
+    int y_pos ;
+#endif
+public:
+     HDRprocess();
+    ~HDRprocess();
+
     //<<!
     void FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 							 uint16_t*	p_u16TabLS, 		//<<! [in] 0-1024 scale tab, may be can use char type for 0-255

@@ -26,25 +26,24 @@
 #include "hdr_process.h"
 #include "hdr_zigzag.h"
 
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_3") uint16_t 		g_HdrBlkBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] = {0};// 36x68x2x2 = 10K
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_3") uint16_t 		g_HdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]									= {0};// 32x64x2x2 = 8K
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t 		g_HdrBlkBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] = {0};// 36x68x2x2 = 10K
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t 		g_HdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]									= {0};// 32x64x2x2 = 8K
 PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	  uint16_t		g_HdrRowBuf[2*HDR_PADDING*4096] 										= {0};		// 2* Line
 PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	  uint16_t		g_HdrColBuf[HDR_PADDING*HDR_BLOCK_H]								 	= {0};	  	// 2  col
 
-
+/*
 HDRInterface::HDRInterface()
 : m_hdrIf(NULL)
 {
 }
 
-/** Destructor
- */
+
 HDRInterface::~HDRInterface()
 {
 }
+*/
 
-
-
+PRAGMA_CSECT("zzhdr_sect")
 void HDRInterface::hdrprocess_sony_raw()
 {
 	uint16_t *src	= m_hdrIf->pRawSrc; 
@@ -197,6 +196,7 @@ void HDRInterface::hdrprocess_sony_raw()
 
 
 		frameNum++;
+		mFrameNum++;
 	}while(frameNum < 2);
 }
 

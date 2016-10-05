@@ -7,21 +7,16 @@
 
 
 
-
-#if HDR_DEBUG_ENABLE
-static int x_pos ;
-static int y_pos ;
-#endif
 static int countFiles = 0;
 // define the block parameters.
 
-
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t		p_u16TabLongShort[962*16]   =
+// 32k
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0") uint16_t		p_u16TabLongShort[962*16]   =
 {
 	#include "../table/longshort_mapping_16banks.dat"
 };
-
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t		pWdrTab16banks[962*16]   =
+// 32k
+PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0") uint16_t		pWdrTab16banks[962*16]   =
 {
 	#include "../table/16banks.dat"
 };
@@ -42,6 +37,16 @@ extern uint16_t		pCurrThumb[THUMB_SIZE_W*THUMB_SIZE_W] ;// 32k store in DDR.
 
 
 
+HDRprocess::HDRprocess()
+: mFrameNum(0)
+{
+}
+HDRprocess::~HDRprocess()
+{
+}
+
+
+PRAGMA_CSECT("zzhdr_sect")
 
 void HDRprocess::FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024 scale tab.
 							 uint16_t*	p_u16TabLS, 		//<<! [in] 0-1024 scale tab, may be can use char type for 0-255
@@ -59,7 +64,8 @@ void HDRprocess::FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024
 							 uint16_t*	p_u16Dst)		//<<! [out] HDR out 16bit,have not do WDR.
 {
 #ifdef __XM4__
-	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
+	if ( 0 == x_pos  && 0 == y_pos && mFrameNum > 0 )
+		PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
 #endif	
 	uint16_t log2ExpTimes = 3;
 	unsigned short* p_imgL 	= p_u16ImageL_S;
@@ -216,10 +222,10 @@ void HDRprocess::FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024
 				// TODO:  read Thumb to bilinear the map, LUT table for mac.
 
 				// y aixs interpolation
-				v8  = (ushort16)vmac3(v6, (unsigned short)(32 - row  ), v7, (unsigned short)row,     (uint16) 0, (unsigned char)(5+log2ExpTimes));
-				v9  = (ushort16)vmac3(v6, (unsigned short)(32 - row-1), v7, (unsigned short)(row+1), (uint16) 0, (unsigned char)(5+log2ExpTimes));
-				v10 = (ushort16)vmac3(v6, (unsigned short)(32 - row-2), v7, (unsigned short)(row+2), (uint16) 0, (unsigned char)(5+log2ExpTimes));
-				v11 = (ushort16)vmac3(v6, (unsigned short)(32 - row-3), v7, (unsigned short)(row+3), (uint16) 0, (unsigned char)(5+log2ExpTimes));
+				v8  = (ushort16)vmac3(v6, (unsigned char)(32 - row  ), v7, (unsigned char)row,     (int16) 0, (unsigned char)8);//(5+log2ExpTimes));
+				v9  = (ushort16)vmac3(v6, (unsigned char)(32 - row-1), v7, (unsigned char)(row+1), (int16) 0, (unsigned char)8);//(5+log2ExpTimes));
+				v10 = (ushort16)vmac3(v6, (unsigned char)(32 - row-2), v7, (unsigned char)(row+2), (int16) 0, (unsigned char)8);//(5+log2ExpTimes));
+				v11 = (ushort16)vmac3(v6, (unsigned char)(32 - row-3), v7, (unsigned char)(row+3), (int16) 0, (unsigned char)8);//(5+log2ExpTimes));
 
 
 				// LUT wdr table for scale.
@@ -255,10 +261,13 @@ void HDRprocess::FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024
 	*p_u16CurrThumb = thumb;
 	
 #ifdef __XM4__
-PROFILER_END();
+	if ( 0 == x_pos  && 0 == y_pos && mFrameNum > 0 )
+		PROFILER_END();
 #endif	
 
 }
+PRAGMA_CSECT("zzhdr_sect")
+
 void HDRprocess::zigzagDebayer(	uint16_t *p_u16Src, 
 						uint16_t *p_u16Tab, 
 						uint16_t blockW,
@@ -270,7 +279,8 @@ void HDRprocess::zigzagDebayer(	uint16_t *p_u16Src,
 						
 {
 #ifdef __XM4__
-	PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
+	if ( 0 == x_pos  && 0 == y_pos && mFrameNum > 0 )
+		PROFILER_START(HDR_BLOCK_H, HDR_BLOCK_W);
 #endif
 	 uint8_t log2_expTimes 	= 3;// log2(8)	
 	 uint8_t log2_resiScale = 1;//2^param.bits/(param.noise*param.exptimes)
@@ -810,9 +820,12 @@ void HDRprocess::zigzagDebayer(	uint16_t *p_u16Src,
 
 	}
 #ifdef __XM4__
-	PROFILER_END();
+	if ( 0 == x_pos  && 0 == y_pos && mFrameNum > 0 )
+		PROFILER_END();
 #endif	
 }
+
+//PRAGMA_CSECT("zzhdr_sect")
 
 void HDRprocess::dma_2Dtransf(unsigned short *dst, 
 						unsigned short *src, 
@@ -836,6 +849,7 @@ void HDRprocess::dma_2Dtransf(unsigned short *dst,
 
 
 
+PRAGMA_CSECT("zzhdr_sect")
 
 void HDRprocess::hdr_block_process(int 		  x,
 							int 	  y,
@@ -898,7 +912,7 @@ void HDRprocess::hdr_block_process(int 		  x,
     char name_hdr[512],name_w[512];
     char name_image[512], name_weight[512];;
 
-	if  ( y_pos == 1 && x_pos == 30  )
+	if  ( y_pos == 0 && x_pos == 0 && frameNum > 0)
 	{
 #if __XM4__
 		sprintf(name_image, "data/%s_%04d-%04d.dat", "LongShortImg_ceva", 	y_pos,	x_pos);
