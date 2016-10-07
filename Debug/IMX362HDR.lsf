@@ -1,0 +1,44 @@
+
+
+classes:
+	data     [d:0,          0x40000] 	internal; # 256K  
+    code     [c:0,          0x8000] 	internal; # 32K 
+	data_ext [d:60000000,   0x4000000] 	external; # 64M
+	code_ext [c:80000000,   0x4000000]  external; # 64M
+code:
+segment 0
+inttbl  
+call_saved_store_restore_sect   lo 
+.text   lo 
+ctor_sect   
+crtn_ctor_sect  
+dtor_sect   
+crtn_dtor_sect  
+
+data:
+segment 0
+
+ 	; block 0,1,2,3
+    ZZ_HDR_DTCM_256K at 0 size 0x30000 ;192k
+
+dummy_sect  lo size 0x8 
+.data   lo align 0x4 
+const_data  lo align 0x4 
+.bss    lo align 0x4 noload
+.no_init    lo align 0x4 noload
+ARG_SECT    lo align 0x4 noload
+ARG_SECT_END    at next noload 
+__MALLOC_SECT   lo align 0x4 noload size 0x4000 
+__STACK_SECT    lo align 0x4 noload size 0x4000 
+data_clone  lo align 0x4 clone .data
+const_data_clone    lo align 0x4 clone const_data
+ctors   align 0x4 
+dtors   align 0x4 
+
+data_ext:     
+    HDR_APP_EXT_DATA lo align 0x40
+     
+    ;data_clone      lo align 0x4 clone .data
+    ;const_data_clone    lo align 0x4 clone const_data
+code_ext:     
+	zzhdr_sect
