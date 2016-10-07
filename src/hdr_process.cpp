@@ -9,42 +9,57 @@
 
 static int countFiles = 0;
 // define the block parameters.
-
-// 32k
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0") uint16_t		p_u16TabLongShort[962*16]   =
-{
-	#include "../table/longshort_mapping_16banks.dat"
-};
-// 32k
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_0") uint16_t		pWdrTab16banks[962*16]   =
-{
-	#include "../table/16banks.dat"
-};
+/*
 
 
 
 PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint16_t		pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W] 	 = {0};// 4kx2 store long and short image.
 PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint16_t 		pWeightBuff[(HDR_BLOCK_H+2)*(HDR_BLOCK_W+2)] 	 = {0};// 4k store weight  
 PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint16_t		pWeightFilter[HDR_BLOCK_H*HDR_BLOCK_W] 			 = {0};// 4k store weight fileterd.
-
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint8_t 		pWeightBuff_bak[(HDR_BLOCK_H+2)*(HDR_BLOCK_W+2)] 	 = {0};// 4k store weight  
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_1") uint8_t		pWeightFilter_bak[HDR_BLOCK_H*HDR_BLOCK_W] 			 = {0};// 4k store weight fileterd.
-
+*/
 
 
 extern uint16_t		pPrevThumb[THUMB_SIZE_W*THUMB_SIZE_W] ;// 32k store in DDR.
 extern uint16_t		pCurrThumb[THUMB_SIZE_W*THUMB_SIZE_W] ;// 32k store in DDR.
 
 
-
-HDRprocess::HDRprocess()
-: mFrameNum(0)
+void HDRprocess::allocDTCM(ZZHdrDTCMStruct *pRK1608_256k_dtcm)
 {
+	mFrameNum = 0;
+	
+	if ( sizeof(ZZHdrDTCMStruct) > SIZE_256K)
+	{	
+		print("DTCM overflow!\n");
+		assert(0);
+	}
+	else
+		mZZhdrDtcm = pRK1608_256k_dtcm;
+
+	memset(mZZhdrDtcm,0,sizeof(ZZHdrDTCMStruct));
+}
+HDRprocess::HDRprocess()
+: mFrameNum(0)//mZZhdrDtcm(NULL)
+{/*
+	if ( sizeof(rk1608_256k_dtcm) > SIZE_256K)
+	{	
+		print("DTCM overflow!\n");
+		assert(0);
+	}
+	else
+		mZZhdrDtcm = &rk1608_256k_dtcm;
+
+	memset(mZZhdrDtcm,0,sizeof(rk1608_256k_dtcm));*/
 }
 HDRprocess::~HDRprocess()
 {
 }
 
+PRAGMA_CSECT("zzhdr_sect")
+void HDRprocess::CopyTab2DTCM(uint16_t* pLongShort, uint16_t* pWDRscale)
+{
+	memcpy(mZZhdrDtcm->p_u16TabLongShort,pLongShort,sizeof(mZZhdrDtcm->p_u16TabLongShort));
+	memcpy(mZZhdrDtcm->pWdrTab16banks,pWDRscale,sizeof(mZZhdrDtcm->pWdrTab16banks));
+}
 
 PRAGMA_CSECT("zzhdr_sect")
 
@@ -269,7 +284,6 @@ void HDRprocess::FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024
 PRAGMA_CSECT("zzhdr_sect")
 
 void HDRprocess::zigzagDebayer(	uint16_t *p_u16Src, 
-						uint16_t *p_u16Tab, 
 						uint16_t blockW,
 						uint16_t blockH,
 						uint16_t stride,
@@ -866,13 +880,12 @@ void HDRprocess::hdr_block_process(int 		  x,
 	uint16_t  normValue = 1024 - 64;
 	
 	zigzagDebayer(	pRawInBuff,
-					p_u16TabLongShort,
 					validW,
 					validH,
 					HDR_SRC_STRIDE,
 					1024-64,
-					pL_S_ImageBuff[buffIdx],
-					pWeightBuff+1+HDR_FILTER_W); // need be clear to zeros.	
+					mZZhdrDtcm->pL_S_ImageBuff[buffIdx],
+					mZZhdrDtcm->pWeightBuff+1+HDR_FILTER_W); // need be clear to zeros.	
 
 	if ( frameNum > 0 && 0 == x && 0 == y)	
 	{
@@ -890,12 +903,12 @@ void HDRprocess::hdr_block_process(int 		  x,
 		
 	}
 
-	FilterdLUTBilinear ( pWeightBuff				, 	//<<! [in] 0-1024 scale tab.
-						 p_u16TabLongShort			,	//<<! [in] 0-1024 scale tab, may be can use char type for 0-255
-						 pL_S_ImageBuff[buffIdx]	,	//<<! [in] long and short image[block32x64]
+	FilterdLUTBilinear ( mZZhdrDtcm->pWeightBuff				, 	//<<! [in] 0-1024 scale tab.
+						 mZZhdrDtcm->p_u16TabLongShort			,	//<<! [in] 0-1024 scale tab, may be can use char type for 0-255
+						 mZZhdrDtcm->pL_S_ImageBuff[buffIdx]	,	//<<! [in] long and short image[block32x64]
 						 pPrevThumb + (y>>5)*thumbStride + (x>>6) ,	//<<! [in] previous frame thumb image for WDR scale.
 						 pCurrThumb + (y>>5)*thumbStride + (x>>6) ,
-						 pWdrTab16banks				,
+						 mZZhdrDtcm->pWdrTab16banks				,
 						 thumbStride				,
 						 HDR_FILTER_W				, 	//<<! [in] weight stride which add padding.
 						 HDR_BLOCK_W				, 	//<<! [in] 16 align
@@ -925,9 +938,8 @@ void HDRprocess::hdr_block_process(int 		  x,
 		sprintf(name_w,   	"../../data/%s_%04d-%04d.dat", "wFiltered_vs", 	y_pos,x_pos);
 		sprintf(name_hdr, 	"../../data/%s_%04d-%04d.dat", "hdr_vs", 		y_pos,x_pos);
 #endif
-		writeFile(pL_S_ImageBuff[buffIdx], 	HDR_BLOCK_W,	2*HDR_BLOCK_H, 	HDR_BLOCK_W,  name_image);
-		writeFile(pWeightBuff,  			HDR_BLOCK_W+2,	HDR_BLOCK_H+2, 	HDR_FILTER_W, name_weight);
-		writeFile(pWeightFilter,			HDR_BLOCK_W, 	HDR_BLOCK_H, 	HDR_BLOCK_W,  name_w);
+		writeFile(mZZhdrDtcm->pL_S_ImageBuff[buffIdx], 	HDR_BLOCK_W,	2*HDR_BLOCK_H, 	HDR_BLOCK_W,  name_image);
+		writeFile(mZZhdrDtcm->pWeightBuff,  			HDR_BLOCK_W+2,	HDR_BLOCK_H+2, 	HDR_FILTER_W, name_weight);
 		writeFile(pHDRoutBuff, 				HDR_BLOCK_W, 	HDR_BLOCK_H, 	HDR_BLOCK_W,  name_hdr);
 		countFiles++;
 	}

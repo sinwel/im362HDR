@@ -26,11 +26,6 @@
 #include "hdr_process.h"
 #include "hdr_zigzag.h"
 
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t 		g_HdrBlkBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] = {0};// 36x68x2x2 = 10K
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_INT_BANK_2") uint16_t 		g_HdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]									= {0};// 32x64x2x2 = 8K
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	  uint16_t		g_HdrRowBuf[2*HDR_PADDING*4096] 										= {0};		// 2* Line
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")	  uint16_t		g_HdrColBuf[HDR_PADDING*HDR_BLOCK_H]								 	= {0};	  	// 2  col
-
 /*
 HDRInterface::HDRInterface()
 : m_hdrIf(NULL)
@@ -60,7 +55,9 @@ void HDRInterface::hdrprocess_sony_raw()
 	int frameNum   	= 0;
 	
 	// process video frames.
-	
+	allocDTCM(&g_rk1608_256k_dtcm);
+	CopyTab2DTCM(pTabLongShort,pWdrTab);
+
 	do
 	{
 		int buffIdx	   	= 0;
@@ -69,9 +66,9 @@ void HDRInterface::hdrprocess_sony_raw()
 		int y_valid	   	= 0;
 		int x		   	= 0;
 		bool bFristCTUline = 0;
-		memset(g_HdrBlkBuf,0,sizeof(g_HdrBlkBuf));
-		memset(g_HdrRowBuf,0,sizeof(g_HdrRowBuf));
-		memset(g_HdrColBuf,0,sizeof(g_HdrColBuf));
+		memset(mZZhdrDtcm->g_HdrBlkBuf,0,sizeof(mZZhdrDtcm->g_HdrBlkBuf));
+		memset(mZZhdrDtcm->g_HdrRowBuf,0,sizeof(mZZhdrDtcm->g_HdrRowBuf));
+		memset(mZZhdrDtcm->g_HdrColBuf,0,sizeof(mZZhdrDtcm->g_HdrColBuf));
 	
 		for (int y = 0; y < rows; y += HDR_BLOCK_H)
 		{
@@ -86,7 +83,7 @@ void HDRInterface::hdrprocess_sony_raw()
 			#endif
 				// Fill Blockdata
 
-				dma_2Dtransf(g_HdrBlkBuf[buffIdx]+2,
+				dma_2Dtransf(mZZhdrDtcm->g_HdrBlkBuf[buffIdx]+2,
 							 src+x+y*W	,
 							 4,
 							 min_(HDR_BLOCK_H,H-y),
@@ -97,8 +94,8 @@ void HDRInterface::hdrprocess_sony_raw()
 
 			    // Fill 4-TopExternalRows from RowBuf
 
-				dma_2Dtransf(	g_HdrBlkBuf[buffIdx],
-								g_HdrRowBuf+x,
+				dma_2Dtransf(	mZZhdrDtcm->g_HdrBlkBuf[buffIdx],
+								mZZhdrDtcm->g_HdrRowBuf+x,
 								0,
 								4,
 								HDR_SRC_STRIDE,
@@ -108,8 +105,8 @@ void HDRInterface::hdrprocess_sony_raw()
 
 			    // Fill 2-LeftCol from ColBuf
 
-				dma_2Dtransf(	g_HdrBlkBuf[buffIdx],
-								g_HdrColBuf	,
+				dma_2Dtransf(	mZZhdrDtcm->g_HdrBlkBuf[buffIdx],
+								mZZhdrDtcm->g_HdrColBuf	,
 								4,							
 								HDR_BLOCK_H,		// line
 								2,					// width
@@ -119,8 +116,8 @@ void HDRInterface::hdrprocess_sony_raw()
 
 			    // Update 2-RightCol back.
 
-				dma_2Dtransf(	g_HdrColBuf,
-								g_HdrBlkBuf[buffIdx]+5*HDR_SRC_STRIDE-4	,
+				dma_2Dtransf(	mZZhdrDtcm->g_HdrColBuf,
+								mZZhdrDtcm->g_HdrBlkBuf[buffIdx]+5*HDR_SRC_STRIDE-4	,
 								0,
 								HDR_BLOCK_H,	// line
 								2,				// width
@@ -138,8 +135,8 @@ void HDRInterface::hdrprocess_sony_raw()
 			    else
 			    {
 			        // Fill 2-RightCol from AnotherBuf
-					dma_2Dtransf(	g_HdrBlkBuf[buffIdx] - 2, 
-									g_HdrBlkBuf[(buffIdx+1)&1] + 4*HDR_SRC_STRIDE + 2, 
+					dma_2Dtransf(	mZZhdrDtcm->g_HdrBlkBuf[buffIdx] - 2, 
+									mZZhdrDtcm->g_HdrBlkBuf[(buffIdx+1)&1] + 4*HDR_SRC_STRIDE + 2, 
 									5, 
 									HDR_BLOCK_H, 	// line
 									2, 				// width
@@ -148,8 +145,8 @@ void HDRInterface::hdrprocess_sony_raw()
 					
 
 					// Update 4-BottomRows to RowBuf, waiting bottom-right corner data.
-					dma_2Dtransf(	g_HdrRowBuf + x_prev, 
-									g_HdrBlkBuf[buffIdx] + HDR_BLOCK_H*HDR_SRC_STRIDE, 
+					dma_2Dtransf(	mZZhdrDtcm->g_HdrRowBuf + x_prev, 
+									mZZhdrDtcm->g_HdrBlkBuf[buffIdx] + HDR_BLOCK_H*HDR_SRC_STRIDE, 
 									0, 
 									4, 				// line
 									HDR_SRC_STRIDE, // width
@@ -163,11 +160,11 @@ void HDRInterface::hdrprocess_sony_raw()
 					y_pos   = y_valid/HDR_BLOCK_H;
 				#endif
 					bFristCTUline = y_valid < HDR_BLOCK_H;
-					hdr_block_process(x_prev,y_valid,thumbStride,frameNum,g_HdrBlkBuf[buffIdx], g_HdrOutBuf[buffIdx], bFristCTUline ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
+					hdr_block_process(x_prev,y_valid,thumbStride,frameNum,mZZhdrDtcm->g_HdrBlkBuf[buffIdx], mZZhdrDtcm->g_HdrOutBuf[buffIdx], bFristCTUline ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
 
 					if (bFristCTUline) // skip the first "HDR_PADDING" line data.
 				        dma_2Dtransf(	dst+x_prev, 
-							       		g_HdrOutBuf[buffIdx] + HDR_PADDING*HDR_BLOCK_W, 
+							       		mZZhdrDtcm->g_HdrOutBuf[buffIdx] + HDR_PADDING*HDR_BLOCK_W, 
 							        	y_valid , 
 							        	HDR_BLOCK_H - HDR_PADDING, 
 							        	min_(HDR_BLOCK_W,W-x_prev),  
@@ -175,7 +172,7 @@ void HDRInterface::hdrprocess_sony_raw()
 							        	HDR_BLOCK_W);
 					else
 				        dma_2Dtransf(	dst+x_prev, 
-								        g_HdrOutBuf[buffIdx], 
+								        mZZhdrDtcm->g_HdrOutBuf[buffIdx], 
 								        y_valid - HDR_PADDING, 
 								        HDR_BLOCK_H, 
 								        min_(HDR_BLOCK_W,W-x_prev),  
@@ -189,8 +186,8 @@ void HDRInterface::hdrprocess_sony_raw()
 		}
 
 		// do last block
-		hdr_block_process(x_prev,y_valid,thumbStride,frameNum,g_HdrBlkBuf[(buffIdx+1)&1], g_HdrOutBuf[(buffIdx+1)&1], y_valid < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
-	    dma_2Dtransf(dst+x_prev, g_HdrOutBuf[(buffIdx+1)&1], y_valid - HDR_PADDING, min_(HDR_BLOCK_H,H-y_valid), min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
+		hdr_block_process(x_prev,y_valid,thumbStride,frameNum,mZZhdrDtcm->g_HdrBlkBuf[(buffIdx+1)&1], mZZhdrDtcm->g_HdrOutBuf[(buffIdx+1)&1], y_valid < HDR_BLOCK_H ,min_(HDR_BLOCK_W,W-x_prev), min_(HDR_BLOCK_H,H-y_valid));
+	    dma_2Dtransf(dst+x_prev, mZZhdrDtcm->g_HdrOutBuf[(buffIdx+1)&1], y_valid - HDR_PADDING, min_(HDR_BLOCK_H,H-y_valid), min_(HDR_BLOCK_W,W-x_prev),  W , HDR_BLOCK_W);
 
 		// 2 padding line data miss
 

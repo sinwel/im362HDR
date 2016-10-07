@@ -55,6 +55,8 @@
 #define     THUMB_SIZE_W			256              // default is 4K/16
 #define     THUMB_SIZE_H			256
 
+#define     SIZE_256K	        256*1024	
+
 
 
 #define     R_B_LONG_PATTERN	0X5555

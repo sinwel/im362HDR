@@ -3,17 +3,26 @@
 #include <stdlib.h>
 #include "hdr_zigzag.h"              // Type definition
 
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")   uint16_t		pPrevThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			 = {0};// 32k store in DDR.
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA")   uint16_t		pCurrThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			 = {0};// 32k store in DDR.
+PRAGMA_DSECT_LOAD("HDR_APP_EXT_DATA")   uint16_t		pPrevThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			 = {0};// 32k store in DDR.
+PRAGMA_DSECT_LOAD("HDR_APP_EXT_DATA")   uint16_t		pCurrThumb[THUMB_SIZE_W*THUMB_SIZE_W] 			 = {0};// 32k store in DDR.
+PRAGMA_DSECT_LOAD("ZZ_HDR_DTCM_256K") 	ZZHdrDTCMStruct	g_rk1608_256k_dtcm;
 
+// 32k
+PRAGMA_DSECT_LOAD("HDR_APP_EXT_DATA") uint16_t		pTabLongShort[962*16]   =
+{
+	#include "../table/longshort_mapping_16banks.dat"
+};
+// 32k
+PRAGMA_DSECT_LOAD("HDR_APP_EXT_DATA") uint16_t		pWdrTab[962*16]   =
+{
+	#include "../table/16banks.dat"
+};
 
-#define 	WORD_INSTRIDE  	256
-#define 	WORD_OUTSTRIDE  256
 
 #if __XM4__
-#include "XM4_defines.h".
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") unsigned short dst[2016*1504];
-PRAGMA_DSECT_LOAD("IMAGE_HDR_APP_EXT_DATA") unsigned short src[2016*1504] ;
+#include "XM4_defines.h"
+PRAGMA_DSECT_LOAD("HDR_APP_EXT_DATA") unsigned short dst[2016*1504];
+PRAGMA_DSECT_LOAD("HDR_APP_EXT_DATA") unsigned short src[2016*1504] ;
 #endif
 
 

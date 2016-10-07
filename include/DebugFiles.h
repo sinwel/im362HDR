@@ -66,10 +66,12 @@
         else \
         fprintf(stderr,"\n"); \
     }
+
+#define print   printf
 #else
     #define PRINT_C_GROUP(namestr,var,start_pos,num,fp,...)
     #define PRINT_CEVA_VRF(namestr,vReg,fp,...)  
-
+    #define print   printf
 #endif
 
 void writeFile(uint8_t *data, int cols, int rows, int stride, char* FileName);

@@ -21,6 +21,15 @@
 #include "rk_bayerhdr.h"
 #include "hdr_process.h"
 
+// 32k
+extern uint16_t		        pTabLongShort[962*16];
+
+// 32k
+extern uint16_t		        pWdrTab[962*16];
+
+// 32k
+extern ZZHdrDTCMStruct		g_rk1608_256k_dtcm;
+
 typedef struct HDRInfStruct
 {
 	//<<!  RawSrc

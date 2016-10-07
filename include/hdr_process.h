@@ -21,17 +21,41 @@
 #include "rk_bayerhdr.h"
 #include "Debugfiles.h"
 
+
+typedef struct ZZHdrDTCMStruct
+{
+
+    //<<!  block 0 -> 64K
+    uint16_t        p_u16TabLongShort[962*16]                   ;//30k
+    uint16_t		pWdrTab16banks[962*16]                      ;//30k
+    //<<!  block 1 -> 64K
+    uint16_t        pL_S_ImageBuff[2][2*HDR_BLOCK_H*HDR_BLOCK_W];// 4kx2 store long and short image.
+    uint16_t        pWeightBuff[(HDR_BLOCK_H+2)*(HDR_BLOCK_W+2)];// 4k store weight  
+    uint16_t        g_HdrBlkBuf[2][(HDR_BLOCK_H+2*HDR_PADDING)*(HDR_BLOCK_W+2*HDR_PADDING)] ;// 36x68x2x2 = 10K
+    uint16_t        g_HdrOutBuf[2][HDR_BLOCK_H*HDR_BLOCK_W]                                 ;// 32x64x2x2 = 8K
+    uint16_t        g_HdrRowBuf[2*HDR_PADDING*4096]                                         ; // 2* Line = 32K
+    uint16_t        g_HdrColBuf[HDR_PADDING*HDR_BLOCK_H]                                    ; // 2  col
+    //<<!  block 2 -> 64K
+
+}ZZHdrDTCMStruct_t;
+
 class HDRprocess 
 {
 public:
+    ZZHdrDTCMStruct* mZZhdrDtcm; 
     int mFrameNum;
 #if HDR_DEBUG_ENABLE
     int x_pos ;
     int y_pos ;
+
+
 #endif
 public:
      HDRprocess();
     ~HDRprocess();
+    void allocDTCM(ZZHdrDTCMStruct *pRK1608_256k_dtcm);
+
+    void CopyTab2DTCM(uint16_t* pLongShort, uint16_t* pWDRscale);
 
     //<<!
     void FilterdLUTBilinear ( uint16_t*	p_u16Weight, 		//<<! [in] 0-1024 scale tab.
@@ -50,7 +74,6 @@ public:
 							 uint16_t*	p_u16Dst);		//<<! [out] HDR out 16bit,have not do WDR.	//<<! [out] HDR out 16bit,have not do WDR.
 
     void zigzagDebayer(	uint16_t *p_u16Src, 
-    						uint16_t *p_u16Tab, 
     						uint16_t blockW,
     						uint16_t blockH,
     						uint16_t stride,

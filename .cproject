@@ -25,10 +25,14 @@
 								<option id="xm4.compiler.general.-I.1916140372" name="Include directories (-I)" superClass="xm4.compiler.general.-I" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/include}&quot;"/>
 								</option>
+								<option id="xm4.compiler.general.-save-temps.349137162" superClass="xm4.compiler.general.-save-temps" value="true" valueType="boolean"/>
 								<inputType id="com.ceva.toolchain.xm4.compiler.c.input.2026036467" superClass="com.ceva.toolchain.xm4.compiler.c.input"/>
 								<inputType id="com.ceva.toolchain.xm4.compiler.cpp.input.166015867" superClass="com.ceva.toolchain.xm4.compiler.cpp.input"/>
 							</tool>
-							<tool id="com.ceva.toolchain.xm4.exe.assembler.debug.743754543" name="CEVA-XM4 Assembler" superClass="com.ceva.toolchain.xm4.exe.assembler.debug"/>
+							<tool id="com.ceva.toolchain.xm4.exe.assembler.debug.743754543" name="CEVA-XM4 Assembler" superClass="com.ceva.toolchain.xm4.exe.assembler.debug">
+								<option id="xm4.assembler.general.-saveTempFiles.428734718" superClass="xm4.assembler.general.-saveTempFiles" value="true" valueType="boolean"/>
+								<option id="xm4.assembler.listing_file.-noLst.2082431739" superClass="xm4.assembler.listing_file.-noLst" value="false" valueType="boolean"/>
+							</tool>
 							<tool id="com.ceva.toolchain.xm4.exe.linker.debug.1483775067" name="CEVA-XM4 Linker" superClass="com.ceva.toolchain.xm4.exe.linker.debug">
 								<option id="xm4.linker.includes.include_directories.743572428" name="Search path (-i)" superClass="xm4.linker.includes.include_directories" valueType="libPaths">
 									<listOptionValue builtIn="false" value="&quot;${XM4TOOLS}/libs/xm4/rtl1_1_1&quot;"/>
@@ -41,6 +45,15 @@
 									<listOptionValue builtIn="false" value="libcio.lib"/>
 									<listOptionValue builtIn="false" value="xm4lib.lib"/>
 								</option>
+								<option id="xm4.linker.listing_file.-noLst.2071481979" superClass="xm4.linker.listing_file.-noLst" value="false" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-G.1159477023" superClass="xm4.linker.listing_file.-G" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-s.745845714" superClass="xm4.linker.listing_file.-s" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-m.1547395430" superClass="xm4.linker.listing_file.-m" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-r.1311214052" superClass="xm4.linker.listing_file.-r" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-libRefInfo.1012491338" superClass="xm4.linker.listing_file.-libRefInfo" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-unmentionedSections.395215725" superClass="xm4.linker.listing_file.-unmentionedSections" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-funcRef.35774300" superClass="xm4.linker.listing_file.-funcRef" value="true" valueType="boolean"/>
+								<option id="xm4.linker.listing_file.-unrefFuncs.1103046623" superClass="xm4.linker.listing_file.-unrefFuncs" value="true" valueType="boolean"/>
 							</tool>
 							<tool id="com.ceva.toolchain.xm4.libmanager.1591119298" name="CEVA-XM4 Library Manager" superClass="com.ceva.toolchain.xm4.libmanager"/>
 						</toolChain>
